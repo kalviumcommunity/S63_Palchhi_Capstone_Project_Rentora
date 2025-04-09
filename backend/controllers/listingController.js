@@ -12,7 +12,8 @@ exports.createListing = async (req, res) => {
       bedrooms,
       bathrooms,
       squareFeet,
-      images
+      images,
+      createdBy
     } = req.body;
 
     const newListing = new Listing({
@@ -26,7 +27,7 @@ exports.createListing = async (req, res) => {
       squareFeet,
       images,
       isAvailable: true,
-      createdBy: req.body.createdBy // make sure this is included in the request body
+      createdBy // ensure this is provided
     });
 
     const savedListing = await newListing.save();
@@ -83,6 +84,40 @@ exports.getListingById = async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+};
+
+// Update a listing
+exports.updateListing = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const updates = req.body;
+
+    const updatedListing = await Listing.findByIdAndUpdate(
+      listingId,
+      updates,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedListing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Listing updated successfully',
+      data: updatedListing,
+    });
+  } catch (error) {
+    console.error('Error updating listing:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
     });
   }
 };

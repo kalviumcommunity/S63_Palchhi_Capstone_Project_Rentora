@@ -30,7 +30,7 @@ const listingSchema = new mongoose.Schema(
 
     images: [
       {
-        type: String, // URL to image stored in cloud or server
+        type: String, 
       },
     ],
     isAvailable: { type: Boolean, default: true,},
@@ -38,11 +38,11 @@ const listingSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false, // Add explicit default
+      required: false, 
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 
