@@ -3,16 +3,13 @@ const router = express.Router();
 const {
   createListing,
   getAllListings,
-  getListingById
+  getListingById,
+  updateListing  
 } = require('../controllers/listingController');
 
-// Create a new listing
 router.post('/listings', createListing);
-
-// Get all listings
 router.get('/listings', getAllListings);
-
-// Get a single listing by ID
 router.get('/listings/:id', getListingById);
 
+router.put('/listings/:id', updateListing); 
 module.exports = router;
