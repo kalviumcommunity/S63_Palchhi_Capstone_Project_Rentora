@@ -38,7 +38,7 @@ const listingSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false,
+      required: false, // Add explicit default
     },
   },
   {
