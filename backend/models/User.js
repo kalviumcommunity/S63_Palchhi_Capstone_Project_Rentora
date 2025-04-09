@@ -47,3 +47,6 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
+
+// http://localhost:6000/api/listings (listing link)
+// http://localhost:6000/api/auth/register (user link)
