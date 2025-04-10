@@ -27,7 +27,7 @@ exports.createListing = async (req, res) => {
       squareFeet,
       images,
       isAvailable: true,
-      createdBy // ensure this is provided
+      createdBy : req.user._id // ensure this is provided
     });
 
     const savedListing = await newListing.save();
