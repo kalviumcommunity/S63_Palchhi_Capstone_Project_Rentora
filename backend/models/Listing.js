@@ -20,29 +20,39 @@ const listingSchema = new mongoose.Schema(
       state: { type: String },
       pincode: { type: String },
     },
-    propertyType: { type: String,  enum: ['rent', 'sale'],  required: true, },
-
-    bedrooms: { type: Number, required: true, },
-
-    bathrooms: { type: Number, required: true, },
-
-    squareFeet: { type: Number,},
-
+    propertyType: {
+      type: String,
+      enum: ['rent', 'sale'],
+      required: true,
+    },
+    bedrooms: {
+      type: Number,
+      required: true,
+    },
+    bathrooms: {
+      type: Number,
+      required: true,
+    },
+    squareFeet: {
+      type: Number,
+    },
     images: [
       {
-        type: String, 
+        type: String,
       },
     ],
-    isAvailable: { type: Boolean, default: true,},
-
+    isAvailable: {
+      type: Boolean,
+      default: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: false, 
+      required: true, // 🔒 Now required
     },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 

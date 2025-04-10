@@ -7,9 +7,14 @@ const {
   updateListing  
 } = require('../controllers/listingController');
 
-router.post('/listings', createListing);
+const authMiddleware = require('../middleware/authMiddleware'); // ✅ Import middleware
+
+// 🔐 Protected Routes
+router.post('/listings', authMiddleware, createListing);
+router.put('/listings/:id', authMiddleware, updateListing);
+
+// 🌐 Public Routes
 router.get('/listings', getAllListings);
 router.get('/listings/:id', getListingById);
 
-router.put('/listings/:id', updateListing); 
 module.exports = router;
