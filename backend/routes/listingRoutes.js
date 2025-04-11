@@ -7,13 +7,12 @@ const {
   updateListing  
 } = require('../controllers/listingController');
 
-const authMiddleware = require('../middleware/authMiddleware'); // ✅ Import middleware
+const authMiddleware = require('../middleware/authMiddleware');
+const authorizeRoles = require('../middleware/authorizeRoles');
 
-// 🔐 Protected Routes
-router.post('/listings', authMiddleware, createListing);
-router.put('/listings/:id', authMiddleware, updateListing);
+router.post('/listings', authMiddleware, authorizeRoles('seller', 'admin'), createListing);
+router.put('/listings/:id', authMiddleware, authorizeRoles('seller', 'admin'), updateListing);
 
-// 🌐 Public Routes
 router.get('/listings', getAllListings);
 router.get('/listings/:id', getListingById);
 
