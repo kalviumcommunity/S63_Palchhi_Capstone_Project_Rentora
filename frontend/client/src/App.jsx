@@ -1,8 +1,20 @@
+// src/App.jsx
+import React from 'react';
+import Navbar from './components/common/Navbar';
+
 function App() {
   return (
     <div>
-      <h1>Welcome to Rentora 🏠</h1>
+      <Navbar />
+      {/* You can add your main content here */}
+      <main>
+        {/* Example placeholder content */}
+        <section style={{ minHeight: '80vh', background: '#0a2647' }}>
+          {/* Your page content goes here */}
+        </section>
+      </main>
     </div>
   );
 }
+
 export default App;
