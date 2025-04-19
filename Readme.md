@@ -98,3 +98,6 @@ Prepare for mobile app (React Native-ready structure)
 
 ## Backend deployment link ##
 https://s63-palchhi-capstone-project-rentora-1.onrender.com
+
+## Frontend deployment link ##
+https://stellar-cobbler-864deb.netlify.app/
