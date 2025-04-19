@@ -1,0 +1,16 @@
+.logout-container {
+    text-align: center;
+    padding: 2rem;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .logout-container h2 {
+    color: #333;
+    margin-bottom: 1rem;
+  }
+  
+  .logout-container p {
+    color: #666;
+  }
+  
