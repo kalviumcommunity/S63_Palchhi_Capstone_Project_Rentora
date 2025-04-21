@@ -26,6 +26,35 @@ body {
   flex-wrap: wrap;
 }
 
+.minimal-success {
+  margin: 1rem 0;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f0fdf4; 
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); 
+}
+
+.success-text {
+  color: red;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.highlight {
+  color: purple; 
+  font-weight: 600;
+  text-decoration: underline dotted #6ee7b7; 
+}
+
+.thin-line {
+  height: 2px;
+  background: linear-gradient(to right, #a7f3d0, #d1fae5); 
+  width: 60%;
+  margin: 0.75rem auto;
+  border-radius: 2px;
+}
+
 .login-left {
   flex: 1;
   padding: 2rem;
@@ -90,6 +119,7 @@ body {
   font-size: 1rem;
   width: 95%;
   color: black;
+  margin-bottom: 22px;
 }
 
 .continue-btn {
@@ -101,18 +131,22 @@ body {
   border: none;
   cursor: pointer;
   color: #ffffff;
+  width: 100%;
   text-shadow: 0.5px 0.5px 0 currentColor;
 }
 
 .register-link {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #000000;
+  text-align: center;
 }
 
 .register-link a {
   color: green;
   text-decoration: none;
   font-weight: 500;
+  font-size: 1rem;
+
 }
 
 .login-right {

@@ -1,0 +1,193 @@
+/* Reset & base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #f9fafb;
+  font-family: 'Rosario', Tahoma, Geneva, Verdana, sans-serif;
+  color: #1f2937;
+}
+
+.contacts-page {
+  padding: 60px 40px;
+  background: linear-gradient(to right, #f0f4f8, #e9eff5);
+  min-height: 100vh;
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Back button */
+.back-btn {
+  background-color: #4b7bec;
+  color: #fff;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  margin: 10px 0 30px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.back-btn:hover {
+  background-color: #3867d6;
+  transform: scale(1.05);
+}
+
+/* Page heading */
+h2 {
+  font-size: 2.8rem;
+  text-align: center;
+  margin-bottom: 40px;
+  color: #0f172a;
+  position: relative;
+  font-weight: 700;
+}
+
+h2::after {
+  content: '';
+  width: 100px;
+  height: 4px;
+  background: #3b82f6;
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+
+/* Contacts grid layout */
+.contacts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+  padding: 30px 0;
+}
+
+/* Contact card styling */
+.contact-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 28px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: slideUp 0.6s ease forwards;
+  opacity: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+}
+
+/* Done state card */
+.contact-card.done {
+  background-color: #ecfdf5;
+  border-left: 6px solid #10b981;
+}
+
+/* Contact content */
+.contact-card p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.contact-card strong {
+  color: #1d4ed8;
+}
+
+/* Action button */
+.mark-done-btn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  margin-top: 14px;
+}
+
+.mark-done-btn:hover {
+  background: #2563eb;
+  transform: scale(1.03);
+}
+
+.mark-done-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* No contacts fallback */
+.no-contacts {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-top: 40px;
+  color: #6b7280;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive behavior */
+@media screen and (max-width: 1024px) {
+  h2 {
+    font-size: 2.3rem;
+  }
+
+  .contacts-page {
+    padding: 40px 25px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  h2 {
+    font-size: 2rem;
+  }
+
+  .contact-card {
+    padding: 22px;
+  }
+
+  .mark-done-btn {
+    width: 100%;
+    padding: 14px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  .contacts-page {
+    padding: 30px 15px;
+  }
+
+  .back-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

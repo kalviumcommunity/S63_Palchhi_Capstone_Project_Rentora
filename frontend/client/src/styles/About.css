@@ -1,0 +1,245 @@
+/* Base Styles */
+.about-page {
+    padding: 2rem 5%;
+    font-family: 'Rosario', sans-serif;
+    background: linear-gradient(to bottom right, #f0f8ff, #e6f0fa);
+    animation: fadeInPage 1.2s ease-in;
+  }
+  
+  /* Fade animation */
+  @keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  section {
+    margin-bottom: 4rem;
+  }
+  
+  /* ===================== Top Section ===================== */
+  .about-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2rem;
+    animation: fadeSlideLeft 1.2s ease-in-out;
+  }
+  
+  @keyframes fadeSlideLeft {
+    from { opacity: 0; transform: translateX(-50px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .about-text {
+    flex: 1;
+    min-width: 280px;
+  }
+  
+  .about-text h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.5rem;
+    color: black;
+  }
+  
+  .about-text h3 {
+    font-size: 1.5rem;
+    color: #004e92;
+    margin-bottom: 1rem;
+  }
+  
+  .about-text p {
+    line-height: 1.6;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  
+  .about-image {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .about-image img {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    transition: transform 0.4s ease;
+  }
+  
+  .about-image img:hover {
+    transform: scale(1.03);
+  }
+  
+  /* ===================== Mission & Vision ===================== */
+  .mission-vision {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  
+  .mission-box, .vision-box {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    animation: fadeIn 1s ease-in forwards;
+  }
+  
+  .vision-box {
+    flex-direction: row-reverse;
+  }
+  
+  .mission-box img,
+  .vision-box img {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  
+  .mission-box div,
+  .vision-box div {
+    flex: 1;
+  }
+  
+  .mission-box h2,
+  .vision-box h2 {
+    font-size: 2rem;
+    margin-bottom: 0.8rem;
+    color: #0c4da2;
+  }
+  
+  .mission-box p,
+  .vision-box p {
+    font-size: 1.1rem;
+    color: #444;
+    line-height: 1.6;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* ===================== Story Section ===================== */
+  .story-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    animation: fadeIn 1s ease-in forwards;
+  }
+  
+  .story-image img {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+  
+  .story-text {
+    flex: 1;
+  }
+  
+  .story-text h2 {
+    font-size: 2rem;
+    color: #0c4da2;
+    margin-bottom: 1rem;
+  }
+  
+  .story-text p {
+    font-size: 1.1rem;
+    color: #333;
+    line-height: 1.7;
+  }
+  
+  /* ===================== Why & Values ===================== */
+  .why-value {
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+    animation: fadeSlideLeft 1s ease-in;
+  }
+  
+  .why-rentora,
+  .what-we-value {
+    flex: 1;
+    min-width: 280px;
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease;
+  }
+  
+  .why-rentora:hover,
+  .what-we-value:hover {
+    transform: translateY(-5px);
+  }
+  
+  .why-rentora h3,
+  .what-we-value h3 {
+    font-size: 1.6rem;
+    color: #0058c2;
+    margin-bottom: 1rem;
+  }
+  
+  .why-rentora li,
+  .what-we-value li {
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+    color: #444;
+  }
+  
+  /* ===================== Let’s Connect ===================== */
+  .lets-connect {
+    text-align: center;
+    background-color: #dceeff;
+    padding: 2rem 1rem;
+    border-radius: 12px;
+    animation: fadeIn 1.2s ease;
+    color: black;
+  }
+  
+  .lets-connect h3 {
+    font-size: 1.6rem;
+    margin-bottom: 0.8rem;
+    color: #003a8c;
+  }
+  
+  .lets-connect a {
+    color: #0047ab;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+  
+  .lets-connect a:hover {
+    color: #002f73;
+  }
+  
+  /* ===================== Responsive ===================== */
+  @media screen and (max-width: 768px) {
+    .about-top,
+    .story-section,
+    .mission-box,
+    .vision-box {
+      flex-direction: column;
+      text-align: center;
+    }
+  
+    .about-text h1 {
+      font-size: 2.2rem;
+    }
+  
+    .mission-box h2,
+    .vision-box h2,
+    .story-text h2 {
+      font-size: 1.6rem;
+    }
+  
+    .why-value {
+      flex-direction: column;
+    }
+  }
+  
