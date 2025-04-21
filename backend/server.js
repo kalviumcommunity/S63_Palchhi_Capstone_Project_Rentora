@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const listingRoutes = require('./routes/listingRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ connectDB();
 
 app.use('/api/auth', authRoutes);
 app.use('/api', listingRoutes);
+app.use('/api/contact', contactRoutes);
 
 
 app.get('/health', (req, res) => {

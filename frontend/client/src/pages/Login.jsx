@@ -10,6 +10,7 @@ const Login = () => {
     password: "",
   });
   const [error, setError] = useState("");
+    const [success, setSuccess] = useState(""); // added for success message
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -30,8 +31,8 @@ const Login = () => {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
       
-      // Redirect to dashboard
-      navigate("/");
+        setSuccess("Login successful. Seamless access granted.");  //Added to display the success message
+        setTimeout(() => navigate("/"), 4000); //Redirect after 2 seconds
     } catch (err) {
       setError(
         err.response?.data?.message || 
@@ -96,6 +97,14 @@ const Login = () => {
               <div className="error-message">
                 <i className="error-icon">⚠️</i> {error}
               </div>
+            )}
+            {success && (
+                <div className="minimal-success">
+                    <p className="success-text">
+                        Seamless access granted. <span className="highlight"> Happy property hunting! →</span>
+                    </p>
+                    <div className="thin-line"></div>
+                </div>
             )}
           </form>
 
