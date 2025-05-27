@@ -1,133 +1,409 @@
 const Listing = require('../models/Listing');
-const { cloudinary } = require('../config/cloudinary');
+const { listingCache } = require('../utils/cache');
 
-// Create a new listing
 exports.createListing = async (req, res) => {
   try {
-    const { title, description, price, location, propertyType, bedrooms, bathrooms, squareFeet, amenities, features } = req.body;
-    
-    // Process uploaded images
-    const images = req.files ? req.files.map(file => ({
-      url: file.path,
-      public_id: file.filename,
-      caption: file.originalname
-    })) : [];
-
-    const listing = new Listing({
+    const {
       title,
       description,
       price,
-      location: JSON.parse(location),
+      location,
       propertyType,
       bedrooms,
       bathrooms,
       squareFeet,
       images,
-      amenities: JSON.parse(amenities || '[]'),
-      features: JSON.parse(features || '[]'),
-      createdBy: req.user._id
+      videos 
+    } = req.body;
+
+    const newListing = new Listing({
+      title,
+      description,
+      price,
+      location,
+      propertyType,
+      bedrooms,
+      bathrooms,
+      squareFeet,
+      images,
+      isAvailable: true,
+      createdBy: req.user._id 
     });
 
-    await listing.save();
-    res.status(201).json({ success: true, data: listing });
+    const savedListing = await newListing.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Listing created successfully',
+      data: savedListing
+    });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Error creating listing:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Get all listings
+
 exports.getAllListings = async (req, res) => {
   try {
-    const listings = await Listing.find().populate('createdBy', 'name email');
-    res.status(200).json({ success: true, data: listings });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-};
+    const {
+      minPrice,
+      maxPrice,
+      city,
+      state,
+      propertyType,
+      buildingType,
+      bedrooms,
+      bathrooms,
+      minSquareFeet,
+      maxSquareFeet,
+      furnished,
+      airConditioning,
+      parking,
+      gym,
+      swimmingPool,
+      internet,
+      petFriendly,
+      garden,
+      security,
+      balcony,
+      elevator,
+      wheelchairAccess,
+      sort,
+      limit = 10,
+      page = 1,
+      search
+    } = req.query;
 
-// Get single listing
-exports.getListing = async (req, res) => {
-  try {
-    const listing = await Listing.findById(req.params.id).populate('createdBy', 'name email');
-    if (!listing) {
-      return res.status(404).json({ success: false, error: 'Listing not found' });
+   
+    const filter = { isAvailable: true };
+
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
-    res.status(200).json({ success: true, data: listing });
+
+   
+    if (city || state) {
+      filter.location = {};
+      if (city) filter.location.city = new RegExp(city, 'i');
+      if (state) filter.location.state = new RegExp(state, 'i');
+    }
+
+    
+    if (propertyType) {
+      filter.propertyType = propertyType;
+    }
+
+  
+    if (buildingType) {
+      filter.buildingType = buildingType;
+    }
+
+    if (bedrooms) {
+      filter.bedrooms = Number(bedrooms);
+    }
+
+    if (bathrooms) {
+      filter.bathrooms = Number(bathrooms);
+    }
+
+    if (minSquareFeet || maxSquareFeet) {
+      filter.squareFeet = {};
+      if (minSquareFeet) filter.squareFeet.$gte = Number(minSquareFeet);
+      if (maxSquareFeet) filter.squareFeet.$lte = Number(maxSquareFeet);
+    }
+
+    const amenitiesFilter = {};
+    if (furnished === 'true') amenitiesFilter['amenities.furnished'] = true;
+    if (airConditioning === 'true') amenitiesFilter['amenities.airConditioning'] = true;
+    if (parking === 'true') amenitiesFilter['amenities.parking'] = true;
+    if (gym === 'true') amenitiesFilter['amenities.gym'] = true;
+    if (swimmingPool === 'true') amenitiesFilter['amenities.swimmingPool'] = true;
+    if (internet === 'true') amenitiesFilter['amenities.internet'] = true;
+    if (petFriendly === 'true') amenitiesFilter['amenities.petFriendly'] = true;
+    if (garden === 'true') amenitiesFilter['amenities.garden'] = true;
+    if (security === 'true') amenitiesFilter['amenities.security'] = true;
+    if (balcony === 'true') amenitiesFilter['amenities.balcony'] = true;
+    if (elevator === 'true') amenitiesFilter['amenities.elevator'] = true;
+    if (wheelchairAccess === 'true') amenitiesFilter['amenities.wheelchairAccess'] = true;
+
+    Object.assign(filter, amenitiesFilter);
+
+
+    if (search) {
+      filter.$or = [
+        { title: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') },
+        { 'location.address': new RegExp(search, 'i') },
+        { 'location.city': new RegExp(search, 'i') },
+        { 'location.state': new RegExp(search, 'i') }
+      ];
+    }
+
+    
+    let sortOption = { createdAt: -1 }; 
+    if (sort === 'price-asc') sortOption = { price: 1 };
+    if (sort === 'price-desc') sortOption = { price: -1 };
+    if (sort === 'newest') sortOption = { createdAt: -1 };
+    if (sort === 'oldest') sortOption = { createdAt: 1 };
+    if (sort === 'popular') sortOption = { viewCount: -1 };
+
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const listings = await Listing.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(Number(limit))
+      .populate('createdBy', 'name email profileImage');
+
+  
+    const total = await Listing.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      data: listings,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Error fetching listings:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
 
-// Update listing
-exports.updateListing = async (req, res) => {
+
+exports.getListingById = async (req, res) => {
   try {
-    const { title, description, price, location, propertyType, bedrooms, bathrooms, squareFeet, amenities, features } = req.body;
+    const listingId = req.params.id;
+    const cacheKey = `listing_${listingId}`;
     
-    let images = [];
-    if (req.files && req.files.length > 0) {
-      // Delete old images from cloudinary
-      const listing = await Listing.findById(req.params.id);
-      if (listing.images && listing.images.length > 0) {
-        for (const image of listing.images) {
-          await cloudinary.uploader.destroy(image.public_id);
-        }
+  
+    let listing = listingCache.get(cacheKey);
+    
+    if (!listing) {
+
+      listing = await Listing.findByIdAndUpdate(
+        listingId,
+        { $inc: { viewCount: 1 } },
+        { new: true }
+      ).populate('createdBy', 'name email profileImage');
+      
+      if (!listing) {
+        return res.status(404).json({ success: false, message: 'Listing not found' });
       }
       
-      // Process new images
-      images = req.files.map(file => ({
-        url: file.path,
-        public_id: file.filename,
-        caption: file.originalname
-      }));
+     
+      listingCache.set(cacheKey, listing);
+    } else {
+   
+      Listing.findByIdAndUpdate(
+        listingId,
+        { $inc: { viewCount: 1 } }
+      ).exec().catch(err => console.error('Error updating view count:', err));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: listing
+    });
+  } catch (error) {
+    console.error('Error fetching listing by ID:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+exports.updateListing = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const updates = req.body;
+
+    
+    const listing = await Listing.findById(listingId);
+    
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found',
+      });
+    }
+    
+  
+    if (req.user.role !== 'admin' && listing.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this listing'
+      });
     }
 
     const updatedListing = await Listing.findByIdAndUpdate(
-      req.params.id,
-      {
-        title,
-        description,
-        price,
-        location: JSON.parse(location),
-        propertyType,
-        bedrooms,
-        bathrooms,
-        squareFeet,
-        ...(images.length > 0 && { images }),
-        amenities: JSON.parse(amenities || '[]'),
-        features: JSON.parse(features || '[]')
-      },
+      listingId,
+      updates,
       { new: true, runValidators: true }
     );
 
-    if (!updatedListing) {
-      return res.status(404).json({ success: false, error: 'Listing not found' });
-    }
 
-    res.status(200).json({ success: true, data: updatedListing });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-};
+    listingCache.delete(`listing_${listingId}`);
 
-// Delete listing
-exports.deleteListing = async (req, res) => {
-  try {
-    const listing = await Listing.findById(req.params.id);
-    
-    if (!listing) {
-      return res.status(404).json({ success: false, error: 'Listing not found' });
-    }
 
-    // Delete images from cloudinary
-    if (listing.images && listing.images.length > 0) {
-      for (const image of listing.images) {
-        await cloudinary.uploader.destroy(image.public_id);
+    if (updates.price && updates.price !== listing.price) {
+      try {
+        const { createNotification } = require('./notificationController');
+        await createNotification({
+          recipient: listing.createdBy,
+          type: 'price_change',
+          title: 'Price Updated',
+          message: `The price for your listing "${listing.title}" has been updated to ${updates.price}`,
+          relatedListing: listingId,
+          actionLink: `/property/${listingId}`
+        });
+      } catch (err) {
+        console.error('Error creating price change notification:', err);
       }
     }
 
-    await listing.remove();
-    res.status(200).json({ success: true, data: {} });
+    res.status(200).json({
+      success: true,
+      message: 'Listing updated successfully',
+      data: updatedListing,
+    });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Error updating listing:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
+  }
+};
+
+
+exports.deleteListing = async (req, res) => {
+  try {
+    const listingId = req.params.id;
+
+    const listing = await Listing.findById(listingId);
+    
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found',
+      });
+    }
+    
+    
+    if (req.user.role !== 'admin' && listing.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this listing'
+      });
+    }
+
+    await Listing.findByIdAndDelete(listingId);
+    
+  
+    listingCache.delete(`listing_${listingId}`);
+
+ 
+    try {
+      const Wishlist = require('../models/Wishlist');
+      await Wishlist.updateMany(
+        { listings: listingId },
+        { $pull: { listings: listingId } }
+      );
+    } catch (err) {
+      console.error('Error removing listing from wishlists:', err);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Listing deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting listing:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
+  }
+};
+
+exports.getMyListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ createdBy: req.user._id });
+    
+    res.status(200).json({
+      success: true,
+      count: listings.length,
+      data: listings
+    });
+  } catch (error) {
+    console.error('Error fetching user listings:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+exports.uploadListingMedia = async (req, res) => {
+  try {
+
+    
+    const files = {
+      images: [],
+      videos: []
+    };
+    
+ 
+    if (req.files && req.files.images) {
+      const imageFiles = Array.isArray(req.files.images) 
+        ? req.files.images 
+        : [req.files.images];
+        
+      files.images = imageFiles.map(file => `/uploads/images/${file.filename}`);
+    }
+    
+ 
+    if (req.files && req.files.videos) {
+      const videoFiles = Array.isArray(req.files.videos) 
+        ? req.files.videos 
+        : [req.files.videos];
+        
+      files.videos = videoFiles.map(file => `/uploads/videos/${file.filename}`);
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: files
+    });
+  } catch (error) {
+    console.error('Error uploading media:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during file upload',
+      error: error.message
+    });
   }
 };
