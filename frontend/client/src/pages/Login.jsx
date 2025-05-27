@@ -1,22 +1,25 @@
-import React, { useState } from "react";
+import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 import signupImage from "../../public/signup.png";
-import api from "../axiosConfig"; // Import your configured axios instance
+import { useAuth } from "../context/AuthContext"; 
+import Navbar from "../components/common/Navbar";
+import Footer from "../components/common/Footer";
 
 const Login = () => {
-  const [form, setForm] = useState({
+  const [form, setForm] = React.useState({
     email: "",
     password: "",
   });
-  const [error, setError] = useState("");
-    const [success, setSuccess] = useState(""); // added for success message
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState(""); 
+  const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth(); 
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError(""); // Clear error on input change
+    setError(""); 
   };
 
   const handleSubmit = async (e) => {
@@ -25,14 +28,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/login", form);
       
-      // Store token and user data
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      const result = await login(form.email, form.password);
       
-        setSuccess("Login successful. Seamless access granted.");  //Added to display the success message
-        setTimeout(() => navigate("/"), 4000); //Redirect after 2 seconds
+      if (result.success) {
+        setSuccess("Login successful. Seamless access granted.");
+        setTimeout(() => navigate("/"), 2000);
+      } else {
+        setError(result.message || "Login failed. Please try again.");
+      }
     } catch (err) {
       setError(
         err.response?.data?.message || 
@@ -44,24 +48,14 @@ const Login = () => {
   };
 
   return (
-    <div className="login-wrapper">
+    <>
+      <Navbar />
+      <div className="login-wrapper">
       <div className="login-card">
         <div className="login-left">
           <h2>Login to enjoy a customized and hassle-free experience</h2>
 
-          <button className="google-login-btn">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/2702/2702602.png"
-              alt="Google"
-            />
-            <span className="Signin">Sign in with Google</span>
-          </button>
 
-          <div className="separator">
-            <hr />
-            <span>or</span>
-            <hr />
-          </div>
 
           <form onSubmit={handleSubmit} className="login-form">
             <input
@@ -118,6 +112,8 @@ const Login = () => {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 };
 

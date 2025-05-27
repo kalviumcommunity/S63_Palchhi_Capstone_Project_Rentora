@@ -1,20 +1,24 @@
-import React, { useState } from "react";
+import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/Register.css";
-import signup from "../../public/signup.png";
-import axios from "axios";
+const signup = "/signup.png";
+import axiosInstance from "../utils/axiosConfig";
+import { useAuth } from "../context/AuthContext"; 
+import Navbar from "../components/common/Navbar";
+import Footer from "../components/common/Footer";
 
 const Register = () => {
-  const [form, setForm] = useState({
+  const [form, setForm] = React.useState({
     name: "",
     email: "",
     password: "",
     role: "buyer",
   });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -28,16 +32,24 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/register", form);
+    
+      const response = await axiosInstance.post("/auth/register", form);
       
-      localStorage.setItem("token", response.data.token);
-      if(response.data.user) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+      if (response.data.success !== false) {
+      
+        const loginResult = await login(form.email, form.password);
+        
+        if (loginResult.success) {
+          setSuccess("Account created! Redirecting...");
+          setTimeout(() => navigate("/"), 2000); 
+        } else {
+    
+          setSuccess("Account created! Please login to continue.");
+          setTimeout(() => navigate("/login"), 2000);
+        }
+      } else {
+        setError(response.data.message || "Registration failed");
       }
-      
-      setSuccess("Account created! Redirecting...");
-      setTimeout(() => navigate("/"), 3000); // Added delay for message visibility
-
     } catch (err) {
       if(err.response) {
         if(err.response.data.errors) {
@@ -56,30 +68,15 @@ const Register = () => {
   };
 
   return (
-    <div className="register-page">
+    <>
+      <Navbar />
+      <div className="register-page">
       <div className="register-container">
         <div className="register-left">
           <h1>Making property hunting simple, secure and stress-free</h1>
           <p>Sign up to start</p>
 
-          <button className="google-signin">
-            <img
-              src="https://cdn-icons-png.flaticon.com/512/300/300221.png"
-              alt="Google"
-              style={{
-                width: "20px",
-                marginRight: "10px",
-                verticalAlign: "middle",
-              }}
-            />
-            <span style={{ fontWeight: "Extra bold" }}>Sign in with Google</span>
-          </button>
 
-          <div className="separator">
-            <hr />
-            <span>or</span>
-            <hr />
-          </div>
 
           <form className="register-form" onSubmit={handleSubmit}>
             <label>
@@ -177,6 +174,8 @@ const Register = () => {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 };
 
