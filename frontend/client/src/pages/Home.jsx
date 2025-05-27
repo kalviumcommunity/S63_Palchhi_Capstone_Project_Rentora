@@ -1,22 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { motion as Motion } from "framer-motion";
 import '../styles/Home.css';
+import '../styles/ShuffleHero.css';
+import '../styles/SmoothScrollProperties.css';
 
-import bgImage from '../../public/bgImage.png';
-import propertyImage1 from '../../public/propertyImage1.png';
-import propertyImage from '../../public/propertyImage.png';
-import propertyImage2 from '../../public/propertyImage2.png';
-import propertyImage3 from '../../public/propertyImage3.png';
-import dreamHomeImage from '../../public/dreamHomeImage.png';
-import rentalHomeImage from '../../public/rentalHomeImage.png';
-import localityInsightsImage from '../../public/localityInsightsImage.png';
-import genuineReviewsImage from '../../public/genuineReviewsImage.png';
-import latestNewsImage from '../../public/latestNewsImage.png';
-import aboutPropertyImage from '../../public/aboutPropertyImage.png';
-import familyImg from '../../public/familyImg.png';
+
 
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
+import ShuffleHero from "../components/common/ShuffleHero";
+import ParallaxProperties from "../components/common/ParallaxProperties";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -26,117 +20,307 @@ const HomePage = () => {
       <Navbar />
 
       {/* Hero */}
-      <div className="hero" style={{ backgroundImage: `url(${bgImage})` }}>
+      <div className="hero">
+        <video className="hero-video" autoPlay loop muted>
+          <source src="/Videos/Hero Section.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        {/* Removed the overlay div */}
         <div className="hero-text">
           <h1>Rentora</h1>
           <h2>Secure & Seamless.</h2>
           <p>Verified listings and connecting buyers, sellers, and renters with confidence.</p>
           <div className="hero-buttons">
-            <button className="discover">Discover</button>
+            <button className="discover" onClick={() => navigate('/properties')}>Discover</button>
             <button className="dream" onClick={() => navigate('/register')}>Find Your Dream Home</button>
           </div>
         </div>
       </div>
 
-      {/* Recommendations */}
-      <div className="recommend-section">
-        <h2>Connecting real people with real homes—affordably and safely.</h2>
+      {/* Recommendations - ShuffleHero */}
+      <ShuffleHero />
 
-        <div className="recommend-block">
-          <div className="recommend-text">
-            <h3>Get home recommendations</h3>
-            <p>Sign in for a more personalized experience.</p>
-            <button className="signup" onClick={() => navigate('/register')}>Sign Up</button>
-            <div className="recommend-tags">
-              <div className="tag blue">Recommended homes based on your monthly budget</div>
-              <div className="tag orange">Recommended homes based on your preferred location</div>
+      {/* Parallax Properties Section */}
+      <ParallaxProperties />
+
+      {/* Testimonials */}
+      <div className="testimonials" style={{ backgroundColor: "rgb(247,248,247)", color: "rgb(45,56,58)", padding: "5rem 0 4.5rem", overflow: "hidden" }}>
+        <div className="testimonial-header">
+          <Motion.h2 
+            initial={{ y: 48, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ ease: "easeInOut", duration: 0.75 }}
+            className="text-4xl font-black uppercase text-center"
+          >
+            What Our Clients Say
+          </Motion.h2>
+          <Motion.p
+            initial={{ y: 48, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ ease: "easeInOut", duration: 0.75, delay: 0.1 }}
+            className="text-center mx-auto max-w-2xl mt-4 mb-12"
+          >
+            Discover how Rentora has transformed the property experience for buyers, sellers, and renters across the country
+          </Motion.p>
+        </div>
+
+        {/* First Row - Moving Right */}
+        <div className="testimonial-carousel-container">
+          <Motion.div 
+            className="testimonial-carousel right"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ ease: "easeInOut", duration: 0.75 }}
+          >
+            {/* First set of cards */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user1.jpg" alt="User 1" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Sarah Johnson</h4>
+                <p>"Rentora made finding my dream apartment so easy! The verified listings gave me peace of mind, and I found the perfect place within a week."</p>
+              </div>
             </div>
-          </div>
-          <div className="recommend-card">
-            <img src={propertyImage} alt="Recommendation" />
-          </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user2.jpg" alt="User 2" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Michael Chen</h4>
+                <p>"As a first-time homebuyer, I was nervous about the process. Rentora's platform was intuitive and the support team was incredibly helpful."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user3.jpg" alt="User 3" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Priya Patel</h4>
+                <p>"The locality insights feature helped me choose the perfect neighborhood for my family. Couldn't be happier with our new home!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user4.jpg" alt="User 4" />
+              </div>
+              <div className="testimonial-content">
+                <h4>James Wilson</h4>
+                <p>"I've used several real estate platforms, but Rentora stands out with its verified listings and seamless communication tools."</p>
+              </div>
+            </div>
+            
+            {/* Duplicate cards to ensure continuous flow */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user1.jpg" alt="User 1" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Sarah Johnson</h4>
+                <p>"Rentora made finding my dream apartment so easy! The verified listings gave me peace of mind, and I found the perfect place within a week."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user2.jpg" alt="User 2" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Michael Chen</h4>
+                <p>"As a first-time homebuyer, I was nervous about the process. Rentora's platform was intuitive and the support team was incredibly helpful."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user3.jpg" alt="User 3" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Priya Patel</h4>
+                <p>"The locality insights feature helped me choose the perfect neighborhood for my family. Couldn't be happier with our new home!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user4.jpg" alt="User 4" />
+              </div>
+              <div className="testimonial-content">
+                <h4>James Wilson</h4>
+                <p>"I've used several real estate platforms, but Rentora stands out with its verified listings and seamless communication tools."</p>
+              </div>
+            </div>
+          </Motion.div>
         </div>
-      </div>
 
-      {/* Properties */}
-      <div className="property-cards">
-        <div className="card">
-          <img src={propertyImage1} alt="Bricks Marvella" />
-          <h4>Bricks Marvella</h4>
-          <p>2, 3, 4 BHK Apartment, Tellapur, Hyderabad</p>
-          <p>₹99.71 Lacs - ₹2.68 Cr</p>
-          <button className="for-sale">For Sell</button>
+        {/* Second Row - Moving Left */}
+        <div className="testimonial-carousel-container">
+          <Motion.div 
+            className="testimonial-carousel left"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ ease: "easeInOut", duration: 0.75, delay: 0.2 }}
+            style={{ transform: "translateX(calc(-50%))" }} /* Start from offset position */
+          >
+            {/* First set of cards */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user5.jpg" alt="User 5" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Emma Rodriguez</h4>
+                <p>"As a property owner, Rentora has simplified the process of finding reliable tenants. The verification system is a game-changer!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user6.jpg" alt="User 6" />
+              </div>
+              <div className="testimonial-content">
+                <h4>David Thompson</h4>
+                <p>"The virtual tours feature saved me so much time. I was able to narrow down my options before physically visiting properties."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user7.jpg" alt="User 7" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Sophia Lee</h4>
+                <p>"Rentora's customer service is exceptional. They were responsive and helpful throughout my entire rental process."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user8.jpg" alt="User 8" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Robert Garcia</h4>
+                <p>"The transparent pricing and no hidden fees approach made my experience stress-free. Highly recommend Rentora!"</p>
+              </div>
+            </div>
+            
+            {/* Duplicate cards to ensure continuous flow */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user5.jpg" alt="User 5" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Emma Rodriguez</h4>
+                <p>"As a property owner, Rentora has simplified the process of finding reliable tenants. The verification system is a game-changer!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user6.jpg" alt="User 6" />
+              </div>
+              <div className="testimonial-content">
+                <h4>David Thompson</h4>
+                <p>"The virtual tours feature saved me so much time. I was able to narrow down my options before physically visiting properties."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user7.jpg" alt="User 7" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Sophia Lee</h4>
+                <p>"Rentora's customer service is exceptional. They were responsive and helpful throughout my entire rental process."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user8.jpg" alt="User 8" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Robert Garcia</h4>
+                <p>"The transparent pricing and no hidden fees approach made my experience stress-free. Highly recommend Rentora!"</p>
+              </div>
+            </div>
+          </Motion.div>
         </div>
-        <div className="card">
-          <img src={propertyImage2} alt="Flat" />
-          <h4>5 BHK Fully Furnished Flat</h4>
-          <p>For Rent in Dasarahalli, Jaipur</p>
-          <p>₹2,000 Rent / ₹75,000 Security / 750 sq.ft</p>
-          <button className="for-sale">For Rent</button>
-        </div>
-        <div className="card">
-          <img src={propertyImage3} alt="Rudraksh" />
-          <h4>Shaligram Rudraksh Kingston</h4>
-          <p>Independent House/Villa, Bawadia Kalan, Bhopal</p>
-          <p>Price On Request</p>
-          <button className="for-sale">For Sell</button>
-        </div>
-      </div>
 
-      {/* Lifestyle Section */}
-      <div className="lifestyle">
-        <div className="left">
-          <img src={dreamHomeImage} alt="Lifestyle" />
-        </div>
-        <div className="right">
-          <h2>Find, Buy & Own Your Dream Home</h2>
-          <p>Explore from Apartments, land, penthouse, townhouses, villas and more</p>
-          <button className="explore">Explore Buying</button>
-        </div>
-
-        <div className="middle-image">
-          <img src={familyImg} alt="Separator" />
-        </div>
-
-        <div className="right"></div>
-
-        <div className="left">
-          <img src={rentalHomeImage} alt="Rental" />
-          <h2>Rental Homes for Everyone</h2>
-          <p>Explore from Apartments, land, penthouse, townhouses, villas and more</p>
-          <button className="explore">Explore Renting</button>
-        </div>
-      </div>
-
-      {/* Insights */}
-      <div className="insights">
-        <div className="insight-header">
-          <h2>Insights & Tools</h2>
-          <p>Go from browsing to buying</p>
-          <button className="insight-btn">View all Insights</button>
-        </div>
-
-        <div className="insight-cards">
-          <div className="insight-card">
-            <img src={localityInsightsImage} alt="Locality" />
-            <h5>Locality Insights</h5>
-            <p>Know more about different localities</p>
-          </div>
-          <div className="insight-card">
-            <img src={genuineReviewsImage} alt="Reviews" />
-            <h5>Genuine Reviews</h5>
-            <p>Know what residents are saying</p>
-          </div>
-          <div className="insight-card">
-            <img src={latestNewsImage} alt="News" />
-            <h5>Latest News</h5>
-            <p>Around real estate and allied industries</p>
-          </div>
-          <div className="insight-card">
-            <img src={aboutPropertyImage} alt="Property" />
-            <h5>About My Property</h5>
-            <p>Track prices & analyse market demands</p>
-          </div>
+        {/* Third Row - Moving Right */}
+        <div className="testimonial-carousel-container">
+          <Motion.div 
+            className="testimonial-carousel right"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ ease: "easeInOut", duration: 0.75, delay: 0.4 }}
+          >
+            {/* First set of cards */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user9.jpg" alt="User 9" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Olivia Martinez</h4>
+                <p>"I sold my house through Rentora and was impressed by how quickly they connected me with serious buyers. The process was smooth from start to finish."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user10.jpg" alt="User 10" />
+              </div>
+              <div className="testimonial-content">
+                <h4>William Kim</h4>
+                <p>"The market insights helped me price my property correctly. Sold within two weeks of listing on Rentora!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user11.jpg" alt="User 11" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Aisha Ahmed</h4>
+                <p>"As an international student, finding accommodation was daunting. Rentora made it simple with their verified listings and secure payment system."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user12.jpg" alt="User 12" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Thomas Brown</h4>
+                <p>"The communication tools on Rentora made negotiating with the seller straightforward. We closed the deal faster than expected!"</p>
+              </div>
+            </div>
+            
+            {/* Duplicate cards to ensure continuous flow */}
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user9.jpg" alt="User 9" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Olivia Martinez</h4>
+                <p>"I sold my house through Rentora and was impressed by how quickly they connected me with serious buyers. The process was smooth from start to finish."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user10.jpg" alt="User 10" />
+              </div>
+              <div className="testimonial-content">
+                <h4>William Kim</h4>
+                <p>"The market insights helped me price my property correctly. Sold within two weeks of listing on Rentora!"</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user11.jpg" alt="User 11" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Aisha Ahmed</h4>
+                <p>"As an international student, finding accommodation was daunting. Rentora made it simple with their verified listings and secure payment system."</p>
+              </div>
+            </div>
+            <div className="testimonial-card">
+              <div className="testimonial-image">
+                <img src="/testimonials/user12.jpg" alt="User 12" />
+              </div>
+              <div className="testimonial-content">
+                <h4>Thomas Brown</h4>
+                <p>"The communication tools on Rentora made negotiating with the seller straightforward. We closed the deal faster than expected!"</p>
+              </div>
+            </div>
+          </Motion.div>
         </div>
       </div>
 

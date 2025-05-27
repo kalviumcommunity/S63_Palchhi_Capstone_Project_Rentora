@@ -1,97 +1,130 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ✅ import this
+import { useNavigate } from 'react-router-dom';
 import '../styles/AllContacts.css';
+import axios from '../utils/axiosConfig';
+import { useAuth } from '../context/AuthContext';
+import Navbar from '../components/common/Navbar';
+import Footer from '../components/common/Footer';
 
 const AllContacts = () => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(null);
-  const navigate = useNavigate(); 
-
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const fetchContacts = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/contact');
-      const data = await res.json();
-      if (res.ok) {
-        setContacts(data || []);
+      setLoading(true);
+      const res = await axios.get('/contact');
+      if (res.data && res.data.data) {
+        setContacts(res.data.data);
       } else {
-        console.error('Failed to fetch contacts:', data.error || 'Unknown error');
+        setContacts([]);
       }
     } catch (error) {
       console.error('Failed to fetch contacts:', error);
+      if (error.response?.status === 403) {
+        alert('You do not have permission to view contacts');
+      }
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
-
   const handleMarkDone = async (id) => {
     try {
-      setMarking(id); 
-      const res = await fetch(`http://localhost:8000/api/contact/${id}/done`, {
-        method: 'PUT',
-      });
-      const data = await res.json();
-      if (res.ok) {
+      setMarking(id);
+      const res = await axios.put(`/contact/${id}/done`);
+      if (res.data && res.data.success) {
         setContacts((prev) =>
-          prev.map((c) => (c._id === id ? { ...c, isDone: true } : c)) 
+          prev.map((c) => (c._id === id ? { ...c, isDone: true } : c))
         );
       } else {
-        alert(data.error || 'Something went wrong');
+        alert('Something went wrong');
       }
     } catch (error) {
-      alert('Error updating contact');
+      console.error('Error updating contact:', error);
+      alert(error.response?.data?.error || 'Error updating contact');
     } finally {
-      setMarking(null); 
+      setMarking(null);
     }
   };
 
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
+    // Check if user is admin or seller before fetching contacts
+    if (user && (user.role === 'admin' || user.role === 'seller')) {
+      fetchContacts();
+    } else if (user) {
+      alert('You do not have permission to view contacts');
+      navigate('/');
+    } else {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   return (
-    <div className="contacts-page">
-      <h2>All Contact Submissions</h2>
+    <>
+      <Navbar />
+      <div className="contacts-page">
+        <h2>All Contact Submissions</h2>
 
+      <div className="contacts-header">
+        <button 
+          className="back-btn" 
+          onClick={() => navigate('/contact')} 
+          title="Back to Contact Page"
+        ></button>
+        <button className="refresh-btn" onClick={fetchContacts}>
+          Refresh
+        </button>
+      </div>
 
-      <button className="back-btn" onClick={() => navigate('/contact')}>
-        ⬅ Back to Contact Page
-      </button>
-
-      {loading ? (
-        <p style={{ textAlign: 'center' }}>Loading...</p>
-      ) : contacts.length === 0 ? (
-        <p style={{ textAlign: 'center' }}>No contacts found.</p>
-      ) : (
-        <div className="contacts-list">
-          {contacts.map((contact) => (
-            <div
-              key={contact._id}
-              className={`contact-card ${contact.isDone ? 'done' : ''}`}
-            >
-              <p><strong>Name:</strong> {contact.fullName}</p>
-              <p><strong>Email:</strong> {contact.email}</p>
-              <p><strong>Phone:</strong> {contact.phone}</p>
-              <p><strong>Message:</strong> {contact.message}</p>
-
-  
-              {!contact.isDone && (
-                <button
-                  className="mark-done-btn"
-                  onClick={() => handleMarkDone(contact._id)}
-                  disabled={marking === contact._id} 
-                >
-                  {marking === contact._id ? 'Marking...' : 'Mark as Done'}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      <div className="contacts-content">
+        {loading ? (
+          <p className="no-contacts">Loading...</p>
+        ) : contacts.length === 0 ? (
+          <p className="no-contacts">No contacts found.</p>
+        ) : (
+          <div className="contacts-list">
+            {contacts.map((contact, index) => (
+              <div
+                key={contact._id}
+                className={`contact-card ${contact.isDone ? 'done' : ''}`}
+                style={{"--card-index": index}}
+              >
+                <div className="contact-header">
+                  <p><strong>Name:</strong> {contact.fullName}</p>
+                  <span className="contact-date">
+                    {new Date(contact.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <p><strong>Email:</strong> {contact.email}</p>
+                <p><strong>Phone:</strong> {contact.phone}</p>
+                <p><strong>Interest:</strong> {contact.propertyInterest}</p>
+                {contact.budget && <p><strong>Budget:</strong> ₹{contact.budget}</p>}
+                <p><strong>Location:</strong> {contact.preferredLocation}</p>
+                <p><strong>Message:</strong> {contact.message}</p>
+                <p><strong>Status:</strong> <span className={`status-${contact.status}`}>{contact.status}</span></p>
+    
+                {!contact.isDone && (
+                  <button
+                    className="mark-done-btn"
+                    onClick={() => handleMarkDone(contact._id)}
+                    disabled={marking === contact._id} 
+                  >
+                    {marking === contact._id ? 'Marking...' : 'Mark as Done'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      </div>
+      <Footer />
+    </>
   );
 };
 

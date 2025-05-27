@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../styles/Logout.css";
-import api from '../axiosConfig'; // Your configured axios instance
+import api from '../axiosConfig'; 
 
 const Logout = () => {
   const navigate = useNavigate();
@@ -9,16 +9,16 @@ const Logout = () => {
   useEffect(() => {
     const logoutUser = async () => {
       try {
-        // Optional: Send logout request to backend
+      
         await api.post('/auth/logout');
       } catch (err) {
         console.error('Logout error:', err);
       } finally {
-        // Clear client-side authentication
+    
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         
-        // Redirect to login page
+    
         navigate('/login', { replace: true });
       }
     };
