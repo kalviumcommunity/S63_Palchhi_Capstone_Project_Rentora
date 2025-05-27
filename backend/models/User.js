@@ -28,15 +28,36 @@ const userSchema = new mongoose.Schema(
     profileImage: {
       type: String,
     },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows multiple null values
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    token: {
+      type: String,
+    },
+    tokenCreatedAt: {
+      type: Date,
+    }
   },
   {
     timestamps: true,
   }
 );
 
-// Hash password before saving
+
 userSchema.pre('save', async function (next) {
+
   if (!this.isModified('password')) return next();
+  
+  // Skip password hashing for Google auth users
+  if (this.authProvider === 'google') return next();
+  
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
@@ -44,6 +65,11 @@ userSchema.pre('save', async function (next) {
 
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
+
+  if (this.authProvider === 'google') {
+    return false; 
+  }
+  
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

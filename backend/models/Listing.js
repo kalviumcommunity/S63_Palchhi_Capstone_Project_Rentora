@@ -19,11 +19,20 @@ const listingSchema = new mongoose.Schema(
       city: { type: String, required: true },
       state: { type: String },
       pincode: { type: String },
+      coordinates: {
+        lat: { type: Number },
+        lng: { type: Number }
+      }
     },
     propertyType: {
       type: String,
       enum: ['rent', 'sale'],
       required: true,
+    },
+    buildingType: {
+      type: String,
+      enum: ['apartment', 'house', 'villa', 'penthouse', 'townhouse', 'land', 'commercial', 'other'],
+      default: 'apartment'
     },
     bedrooms: {
       type: Number,
@@ -38,26 +47,46 @@ const listingSchema = new mongoose.Schema(
     },
     images: [
       {
-        url: { type: String, required: true },
-        public_id: { type: String, required: true },
-        caption: { type: String }
+        type: String,
+      },
+    ],
+    videos: [
+      {
+        type: String,
       }
     ],
+    features: [String],
+    amenities: {
+      furnished: { type: Boolean, default: false },
+      airConditioning: { type: Boolean, default: false },
+      parking: { type: Boolean, default: false },
+      gym: { type: Boolean, default: false },
+      swimmingPool: { type: Boolean, default: false },
+      internet: { type: Boolean, default: false },
+      petFriendly: { type: Boolean, default: false },
+      garden: { type: Boolean, default: false },
+      security: { type: Boolean, default: false },
+      balcony: { type: Boolean, default: false },
+      elevator: { type: Boolean, default: false },
+      wheelchairAccess: { type: Boolean, default: false }
+    },
     isAvailable: {
       type: Boolean,
       default: true,
     },
+    isPremium: {
+      type: Boolean,
+      default: false
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true, // 🔒 Now required
+      required: true,
     },
-    amenities: [{
-      type: String
-    }],
-    features: [{
-      type: String
-    }]
+    viewCount: {
+      type: Number,
+      default: 0
+    }
   },
   {
     timestamps: true,
