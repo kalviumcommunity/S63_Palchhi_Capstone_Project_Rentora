@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Rosario&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   font-family: 'Rosario', sans-serif;
   line-height: 1.5;
@@ -31,10 +35,9 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 h1 {
