@@ -1,0 +1,657 @@
+.my-listings-container {
+    width: 100vw;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  .my-listings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem 2rem 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .my-listings-header h1 {
+    font-size: 2rem;
+    color: #333;
+    margin: 0;
+    padding-top: 0.5rem;
+  }
+  
+  .add-listing-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    margin-top: 0.5rem;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .add-listing-btn:hover {
+    background-color: #3a7bc8;
+  }
+  
+  .loader-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+  }
+  
+  .listings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+    margin: 0 -0.5rem; /* Compensate for card margins */
+  }
+  
+  .listing-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    transition: transform 0.3s, box-shadow 0.3s;
+    margin: 0.5rem;
+  }
+  
+  .listing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+  
+  .listing-image-container {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+  }
+  
+  .listing-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+  }
+  
+  .listing-card:hover .listing-image {
+    transform: scale(1.05);
+  }
+  
+  .listing-price {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  
+  .listing-type {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #4a90e2;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .listing-details {
+    padding: 1.75rem;
+  }
+  
+  .listing-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .listing-location {
+    color: #666;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .listing-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: #555;
+    font-size: 0.9rem;
+  }
+  
+  .listing-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+  }
+  
+  .btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  
+  .no-listings {
+    text-align: center;
+    padding: 3rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+  }
+  
+  .no-listings p {
+    margin-bottom: 1.5rem;
+    color: #666;
+    font-size: 1.1rem;
+  }
+  
+  /* Edit Overlay Styles */
+  .edit-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 2rem 0;
+  }
+  
+  .edit-overlay-content {
+    background-color: white;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem;
+    position: relative;
+  }
+  
+  .edit-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .edit-overlay-header h2 {
+    margin: 0;
+    color: #333;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+  }
+  
+  .close-btn:hover {
+    color: #333;
+  }
+  
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .form-grid-full {
+    grid-column: 1 / -1;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    color: #555;
+  }
+  
+  .form-control {
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .form-control:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+  
+  .amenities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .amenity-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .file-drop-area {
+    border: 2px dashed #4caf50;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+    background-color: #f0fff4;
+  }
+  
+  .file-drop-area:hover {
+    border-color: #2e7d32;
+    background-color: #e8f5e9;
+  }
+  
+  .file-drop-area.video-upload {
+    border-color: #ff9800;
+    background-color: #fff8e1;
+  }
+  
+  .file-drop-area.video-upload:hover {
+    border-color: #ef6c00;
+    background-color: #ffecb3;
+  }
+  
+  .file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+  
+  .file-type-indicator {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+  }
+  
+  .file-input-text {
+    display: block;
+    color: #555;
+    font-size: 1rem;
+  }
+  
+  .upload-progress {
+    margin-top: 1rem;
+    height: 6px;
+    background-color: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  
+  .upload-progress-bar {
+    height: 100%;
+    background-color: #4caf50;
+    transition: width 0.3s;
+  }
+  
+  .file-input-icon {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #4caf50;
+  }
+  
+  .video-upload .file-input-icon {
+    color: #ff9800;
+  }
+  
+  .file-input-container.dragging {
+    border-style: solid;
+    border-width: 3px;
+    transform: scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    animation: pulse 1.5s infinite;
+    position: relative;
+    z-index: 10;
+  }
+  
+  .video-preview {
+    margin-top: 1.5rem;
+  }
+  
+  .video-item {
+    background-color: #fff8e1;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border-left: 4px solid #ff9800;
+    position: relative;
+  }
+  
+  .video-item:hover {
+    background-color: #ffecb3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .video-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to right, rgba(255, 248, 225, 0) 0%, #fff8e1 100%);
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+  
+  .video-item:hover::after {
+    background: linear-gradient(to right, rgba(255, 236, 179, 0) 0%, #ffecb3 100%);
+  }
+  
+  .video-icon {
+    font-size: 2rem;
+    color: #ff9800;
+  }
+  
+  .video-details {
+    flex: 1;
+  }
+  
+  .video-name {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #333;
+  }
+  
+  .video-size {
+    font-size: 0.8rem;
+    color: #777;
+  }
+  
+  .video-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+  }
+  
+  .video-item:hover .video-actions {
+    opacity: 1;
+  }
+  
+  .file-count {
+    display: inline-block;
+    background-color: #4a90e2;
+    color: white;
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(74, 144, 226, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
+    }
+  }
+  
+  .image-preview {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .preview-container {
+    position: relative;
+    height: 150px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .preview-container:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  }
+  
+  .preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  
+  .preview-container:hover .preview-image {
+    transform: scale(1.05);
+  }
+  
+  .preview-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .preview-container:hover .preview-overlay {
+    opacity: 1;
+  }
+  
+  .preview-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0.9;
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+  
+  .preview-container:hover .preview-actions {
+    opacity: 1;
+  }
+  
+  .preview-action-btn {
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    font-size: 1rem;
+  }
+  
+  .preview-action-btn:hover {
+    background-color: white;
+    transform: scale(1.15);
+  }
+  
+  .preview-action-btn.delete {
+    color: #e74c3c;
+    background-color: #fff5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  
+  /* Common delete button styles */
+  .preview-action-btn.delete {
+    width: auto;
+    height: 36px;
+    border-radius: 18px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #e74c3c;
+    padding: 0 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .preview-action-btn.delete:hover {
+    background-color: #ffe0e0;
+    color: #c0392b;
+    transform: scale(1.15);
+  }
+  
+  .preview-container .preview-action-btn.delete:hover {
+    background-color: #e74c3c;
+    color: white;
+    border-color: #c0392b;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+    transform: scale(1.05);
+  }
+  
+  .delete-text {
+    font-size: 12px;
+    font-weight: 500;
+    display: inline;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .btn-primary {
+    background-color: #4a90e2;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #3a7bc8;
+  }
+  
+  .btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .btn-danger {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
+  .btn-danger:hover {
+    background-color: #c0392b;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .edit-overlay-content {
+      padding: 1.5rem;
+      width: 95%;
+    }
+    
+    .my-listings-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 2rem 1rem 0;
+    }
+    
+    .listings-grid {
+      grid-template-columns: 1fr;
+      padding: 0 0.75rem;
+      gap: 1.25rem;
+    }
+    
+    .my-listings-container {
+      width: 100vw;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+  }
