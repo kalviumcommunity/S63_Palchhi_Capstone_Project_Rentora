@@ -3,11 +3,19 @@ const router = express.Router();
 const {
   submitContactForm,
   getAllContacts,
-  markContactAsDone
+  markContactAsDone,
+  updateContactStatus,
+  deleteContact
 } = require('../controllers/contactController');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.post('/', submitContactForm);                // Contact form submit
-router.get('/', getAllContacts);                    // Get all contacts
-router.put('/:id/done', markContactAsDone);         // Mark contact as done
+
+router.post('/', submitContactForm);                
+
+
+router.get('/', protect, authorize(['admin', 'seller']), getAllContacts);  
+router.put('/:id/done', protect, authorize(['admin', 'seller']), markContactAsDone);  
+router.put('/:id/status', protect, authorize(['admin', 'seller']), updateContactStatus);  
+router.delete('/:id', protect, authorize(['admin']), deleteContact);  
 
 module.exports = router;
