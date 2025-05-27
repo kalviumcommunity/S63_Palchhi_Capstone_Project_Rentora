@@ -4,10 +4,12 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Logout from './pages/Logout';
 import Dashboard from './pages/Dashboard';
-import About from './pages/About'; // ✅ New About Page
+import About from './pages/About'; 
 import ProtectedRoute from './utils/ProtectedRoute';
 import Contact from './pages/Contact';
 import AllContacts from './pages/AllContacts';
+import CreateListing from './pages/CreateListing';
+import EditListing from './pages/EditListing';
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/create-listing" element={<CreateListing />} />
+          <Route path="/edit-listing/:id" element={<EditListing />} />
         </Route>
 
         {/* Fallback Route */}

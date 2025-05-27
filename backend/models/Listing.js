@@ -38,8 +38,10 @@ const listingSchema = new mongoose.Schema(
     },
     images: [
       {
-        type: String,
-      },
+        url: { type: String, required: true },
+        public_id: { type: String, required: true },
+        caption: { type: String }
+      }
     ],
     isAvailable: {
       type: Boolean,
@@ -50,6 +52,12 @@ const listingSchema = new mongoose.Schema(
       ref: 'User',
       required: true, // 🔒 Now required
     },
+    amenities: [{
+      type: String
+    }],
+    features: [{
+      type: String
+    }]
   },
   {
     timestamps: true,

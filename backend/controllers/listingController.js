@@ -1,49 +1,37 @@
 const Listing = require('../models/Listing');
+const { cloudinary } = require('../config/cloudinary');
 
 // Create a new listing
 exports.createListing = async (req, res) => {
   try {
-    const {
+    const { title, description, price, location, propertyType, bedrooms, bathrooms, squareFeet, amenities, features } = req.body;
+    
+    // Process uploaded images
+    const images = req.files ? req.files.map(file => ({
+      url: file.path,
+      public_id: file.filename,
+      caption: file.originalname
+    })) : [];
+
+    const listing = new Listing({
       title,
       description,
       price,
-      location,
+      location: JSON.parse(location),
       propertyType,
       bedrooms,
       bathrooms,
       squareFeet,
       images,
-      createdBy
-    } = req.body;
-
-    const newListing = new Listing({
-      title,
-      description,
-      price,
-      location,
-      propertyType,
-      bedrooms,
-      bathrooms,
-      squareFeet,
-      images,
-      isAvailable: true,
-      createdBy : req.user._id // ensure this is provided
+      amenities: JSON.parse(amenities || '[]'),
+      features: JSON.parse(features || '[]'),
+      createdBy: req.user._id
     });
 
-    const savedListing = await newListing.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Listing created successfully',
-      data: savedListing
-    });
+    await listing.save();
+    res.status(201).json({ success: true, data: listing });
   } catch (error) {
-    console.error('Error creating listing:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -51,73 +39,95 @@ exports.createListing = async (req, res) => {
 exports.getAllListings = async (req, res) => {
   try {
     const listings = await Listing.find().populate('createdBy', 'name email');
-    res.status(200).json({
-      success: true,
-      data: listings
-    });
+    res.status(200).json({ success: true, data: listings });
   } catch (error) {
-    console.error('Error fetching listings:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
-// Get single listing by ID
-exports.getListingById = async (req, res) => {
+// Get single listing
+exports.getListing = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id).populate('createdBy', 'name email');
-
     if (!listing) {
-      return res.status(404).json({ success: false, message: 'Listing not found' });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
-
-    res.status(200).json({
-      success: true,
-      data: listing
-    });
+    res.status(200).json({ success: true, data: listing });
   } catch (error) {
-    console.error('Error fetching listing by ID:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
-// Update a listing
+// Update listing
 exports.updateListing = async (req, res) => {
   try {
-    const listingId = req.params.id;
-    const updates = req.body;
+    const { title, description, price, location, propertyType, bedrooms, bathrooms, squareFeet, amenities, features } = req.body;
+    
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      // Delete old images from cloudinary
+      const listing = await Listing.findById(req.params.id);
+      if (listing.images && listing.images.length > 0) {
+        for (const image of listing.images) {
+          await cloudinary.uploader.destroy(image.public_id);
+        }
+      }
+      
+      // Process new images
+      images = req.files.map(file => ({
+        url: file.path,
+        public_id: file.filename,
+        caption: file.originalname
+      }));
+    }
 
     const updatedListing = await Listing.findByIdAndUpdate(
-      listingId,
-      updates,
+      req.params.id,
+      {
+        title,
+        description,
+        price,
+        location: JSON.parse(location),
+        propertyType,
+        bedrooms,
+        bathrooms,
+        squareFeet,
+        ...(images.length > 0 && { images }),
+        amenities: JSON.parse(amenities || '[]'),
+        features: JSON.parse(features || '[]')
+      },
       { new: true, runValidators: true }
     );
 
     if (!updatedListing) {
-      return res.status(404).json({
-        success: false,
-        message: 'Listing not found',
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
-    res.status(200).json({
-      success: true,
-      message: 'Listing updated successfully',
-      data: updatedListing,
-    });
+    res.status(200).json({ success: true, data: updatedListing });
   } catch (error) {
-    console.error('Error updating listing:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message,
-    });
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+// Delete listing
+exports.deleteListing = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id);
+    
+    if (!listing) {
+      return res.status(404).json({ success: false, error: 'Listing not found' });
+    }
+
+    // Delete images from cloudinary
+    if (listing.images && listing.images.length > 0) {
+      for (const image of listing.images) {
+        await cloudinary.uploader.destroy(image.public_id);
+      }
+    }
+
+    await listing.remove();
+    res.status(200).json({ success: true, data: {} });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
   }
 };

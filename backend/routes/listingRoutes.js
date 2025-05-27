@@ -1,19 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/authMiddleware');
+const { upload } = require('../config/cloudinary');
 const {
   createListing,
   getAllListings,
-  getListingById,
-  updateListing  
+  getListing,
+  updateListing,
+  deleteListing
 } = require('../controllers/listingController');
 
 const authMiddleware = require('../middleware/authMiddleware');
 const authorizeRoles = require('../middleware/authorizeRoles');
 
-router.post('/listings', authMiddleware, authorizeRoles('seller', 'admin'), createListing);
-router.put('/listings/:id', authMiddleware, authorizeRoles('seller', 'admin'), updateListing);
+router.post('/', protect, upload.array('images', 10), createListing);
+router.put('/:id', protect, upload.array('images', 10), updateListing);
+router.delete('/:id', protect, deleteListing);
 
-router.get('/listings', getAllListings);
-router.get('/listings/:id', getListingById);
+router.get('/', getAllListings);
+router.get('/:id', getListing);
 
 module.exports = router;
