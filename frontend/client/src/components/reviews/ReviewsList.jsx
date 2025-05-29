@@ -14,23 +14,33 @@ const ReviewsList = ({ listingId, sellerId }) => {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchReviews();
+    if (listingId) {
+      fetchReviews();
+    }
   }, [listingId]);
 
   const fetchReviews = async () => {
-    setLoading(true);
-    const response = await getListingReviews(listingId);
-    if (response.success) {
-      setReviews(response.data.reviews);
-      setAverageRating(response.data.averageRating);
-    } else {
-      toast.error(response.message);
+    try {
+      setLoading(true);
+      const response = await getListingReviews(listingId);
+      if (response.success) {
+        setReviews(response.reviews || []);
+        setAverageRating(response.averageRating || 0);
+      } else {
+        toast.error(response.message || 'Failed to fetch reviews');
+        setReviews([]);
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      toast.error('Failed to fetch reviews');
+      setReviews([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleReviewAdded = (newReview) => {
-    setReviews([newReview, ...reviews]);
+    setReviews(prevReviews => [newReview, ...prevReviews]);
     setShowForm(false);
 
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0) + newReview.rating;
@@ -39,12 +49,15 @@ const ReviewsList = ({ listingId, sellerId }) => {
   };
 
   const handleReviewUpdated = (updatedReview) => {
+    setReviews(prevReviews => 
+      prevReviews.map(review => 
+        review._id === updatedReview._id ? updatedReview : review
+      )
+    );
+
     const updatedReviews = reviews.map(review => 
       review._id === updatedReview._id ? updatedReview : review
     );
-    setReviews(updatedReviews);
-    
-
     const totalRating = updatedReviews.reduce((sum, review) => sum + review.rating, 0);
     setAverageRating(totalRating / updatedReviews.length);
     
@@ -52,10 +65,9 @@ const ReviewsList = ({ listingId, sellerId }) => {
   };
 
   const handleReviewDeleted = (reviewId) => {
-    const filteredReviews = reviews.filter(review => review._id !== reviewId);
-    setReviews(filteredReviews);
+    setReviews(prevReviews => prevReviews.filter(review => review._id !== reviewId));
     
-    // Recalculate average if there are still reviews
+    const filteredReviews = reviews.filter(review => review._id !== reviewId);
     if (filteredReviews.length > 0) {
       const totalRating = filteredReviews.reduce((sum, review) => sum + review.rating, 0);
       setAverageRating(totalRating / filteredReviews.length);
@@ -66,8 +78,7 @@ const ReviewsList = ({ listingId, sellerId }) => {
     toast.success('Review deleted successfully');
   };
 
-  const hasReviewed = user && reviews.some(review => review.user._id === user._id);
-
+  const hasReviewed = user && reviews.some(review => review.user?._id === user._id);
   const isSeller = user && user._id === sellerId;
 
   if (loading) {
@@ -77,7 +88,7 @@ const ReviewsList = ({ listingId, sellerId }) => {
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">Reviews ({reviews.length})</h2>
+        <h2 className="text-xl font-bold">Reviews ({reviews?.length || 0})</h2>
         <div className="flex items-center">
           <div className="flex items-center mr-4">
             {[1, 2, 3, 4, 5].map((star) => (
@@ -117,7 +128,7 @@ const ReviewsList = ({ listingId, sellerId }) => {
         />
       )}
 
-      {reviews.length === 0 ? (
+      {!reviews || reviews.length === 0 ? (
         <p className="text-gray-500 text-center py-6">No reviews yet. Be the first to review!</p>
       ) : (
         <div className="space-y-6">
@@ -127,6 +138,7 @@ const ReviewsList = ({ listingId, sellerId }) => {
               review={review}
               onReviewUpdated={handleReviewUpdated}
               onReviewDeleted={handleReviewDeleted}
+              currentUser={user}
             />
           ))}
         </div>

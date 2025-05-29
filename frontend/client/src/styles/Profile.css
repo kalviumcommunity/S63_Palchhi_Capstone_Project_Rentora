@@ -595,10 +595,17 @@
   }
   
   .review-date {
-    color: #999;
+    color: #666;
     font-size: 0.875rem;
     margin-top: 1rem;
     text-align: right;
+  }
+  
+  /* Add styles for the "no reviews" message */
+  .tab-content p {
+    color: #333;
+    font-size: 1rem;
+    line-height: 1.5;
   }
   
   .settings-section {
@@ -620,6 +627,10 @@
   
   .notification-option input {
     margin-right: 0.5rem;
+  }
+  
+  .notification-option label {
+    color: #000;
   }
   
   .delete-account {

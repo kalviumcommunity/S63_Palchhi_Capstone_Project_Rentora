@@ -28,6 +28,13 @@ const userSchema = new mongoose.Schema(
     profileImage: {
       type: String,
     },
+    preferences: {
+      emailNotifications: { type: Boolean, default: true },
+      smsNotifications: { type: Boolean, default: false },
+      marketingEmails: { type: Boolean, default: true },
+      profileVisibility: { type: Boolean, default: true },
+      showContactInfo: { type: Boolean, default: false }
+    },
     googleId: {
       type: String,
       unique: true,

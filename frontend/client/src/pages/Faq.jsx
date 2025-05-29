@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Faq.css';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
+import { useNavigate } from 'react-router-dom';
 
 const Faq = () => {
 
@@ -424,8 +424,6 @@ const Faq = () => {
           <div className="floating-element fe-3"></div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

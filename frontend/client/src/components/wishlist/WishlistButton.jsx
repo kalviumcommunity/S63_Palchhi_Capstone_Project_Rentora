@@ -7,16 +7,16 @@ import { toast } from 'react-toastify';
 const WishlistButton = ({ listingId, size = 'md', className = '' }) => {
   const [inWishlist, setInWishlist] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user) {
       checkWishlistStatus();
     } else {
       setLoading(false);
     }
-  }, [isAuthenticated, listingId]);
+  }, [user, listingId]);
 
   const checkWishlistStatus = async () => {
     setLoading(true);
@@ -31,7 +31,7 @@ const WishlistButton = ({ listingId, size = 'md', className = '' }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAuthenticated) {
+    if (!user) {
       toast.info('Please login to save properties to your wishlist');
       navigate('/login');
       return;

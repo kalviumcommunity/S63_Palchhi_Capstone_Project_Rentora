@@ -19,12 +19,12 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // Use consistent path for uploads
-    let uploadPath = 'public/uploads/';
+    let uploadPath = path.join(__dirname, '..', 'public', 'uploads');
     
     if (file.fieldname === 'images') {
-      uploadPath += 'images';
+      uploadPath = path.join(uploadPath, 'images');
     } else if (file.fieldname === 'videos') {
-      uploadPath += 'videos';
+      uploadPath = path.join(uploadPath, 'videos');
     }
     
     // Create directory if it doesn't exist
@@ -32,10 +32,10 @@ const storage = multer.diskStorage({
       fs.mkdirSync(uploadPath, { recursive: true });
     }
     
+    console.log('Upload path:', uploadPath);
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }

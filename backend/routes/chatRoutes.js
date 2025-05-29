@@ -10,20 +10,22 @@ const {
   deleteChat
 } = require('../controllers/chatController');
 
-
+// Get all chats for the current user
 router.get('/chats', protect, getUserChats);
 
+// Get a specific chat by ID
 router.get('/chats/:id', protect, getChatById);
 
-
+// Create a new chat
 router.post('/chats', protect, createChat);
 
-router.post('/chats/message', protect, sendMessage);
+// Send a message in a chat
+router.post('/chats/:chatId/messages', protect, sendMessage);
 
-
+// Mark messages as read in a chat
 router.put('/chats/:chatId/read', protect, markMessagesAsRead);
 
-
+// Delete a chat
 router.delete('/chats/:chatId', protect, deleteChat);
 
 module.exports = router;

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { createReview, updateReview } from '../../api/reviewApi';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const ReviewForm = ({
   listingId,
@@ -14,12 +16,13 @@ const ReviewForm = ({
   const [formData, setFormData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     
-
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -28,7 +31,6 @@ const ReviewForm = ({
   const handleRatingChange = (rating) => {
     setFormData({ ...formData, rating });
     
-  
     if (errors.rating) {
       setErrors({ ...errors, rating: '' });
     }
@@ -54,6 +56,12 @@ const ReviewForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error('Please log in to write a review');
+      navigate('/login');
+      return;
+    }
+    
     if (!validateForm()) {
       return;
     }
@@ -77,7 +85,12 @@ const ReviewForm = ({
         }
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.');
+      if (error.response?.status === 401) {
+        toast.error('Please log in to write a review');
+        navigate('/login');
+      } else {
+        toast.error('An error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

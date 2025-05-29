@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { FiArrowUpRight, FiHome, FiKey } from "react-icons/fi";
 import '../styles/About.css';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
+import { useNavigate } from 'react-router-dom';
 
 const About = () => {
   return (
@@ -151,7 +151,6 @@ const About = () => {
           </div>
         </motion.section>
       </div>
-      <Footer />
     </>
   );
 };
