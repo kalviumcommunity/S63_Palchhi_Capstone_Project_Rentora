@@ -215,9 +215,14 @@ exports.createChat = async (req, res) => {
         // Continue even if notification creation fails
       }
       
+      // Populate the chat data before sending response
+      const populatedChat = await Chat.findById(newChat._id)
+        .populate('participants', 'name email avatar')
+        .populate('listing', 'title images price propertyType location');
+      
       return res.status(201).json({
         success: true,
-        data: newChat
+        data: populatedChat
       });
     } catch (innerError) {
       console.error('Inner error in chat creation:', innerError);
@@ -343,7 +348,7 @@ exports.sendMessage = async (req, res) => {
 // Mark messages as read
 exports.markMessagesAsRead = async (req, res) => {
   try {
-    const { chatId } = req.params;
+    const chatId = req.params.chatId;
     const userId = req.user.id;
     
     // Find the chat and verify the user is a participant
@@ -360,8 +365,8 @@ exports.markMessagesAsRead = async (req, res) => {
       });
     }
     
-    // Mark all messages from other participants as read
-    const result = await Message.updateMany(
+    // Mark all unread messages as read
+    await Message.updateMany(
       {
         chat: chatId,
         sender: { $ne: userId },
@@ -372,10 +377,7 @@ exports.markMessagesAsRead = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      message: 'Messages marked as read',
-      data: {
-        modifiedCount: result.modifiedCount
-      }
+      message: 'Messages marked as read'
     });
   } catch (error) {
     console.error('Error marking messages as read:', error);

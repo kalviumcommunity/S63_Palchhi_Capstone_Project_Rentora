@@ -5,8 +5,6 @@ import '../styles/Home.css';
 import '../styles/ShuffleHero.css';
 import '../styles/SmoothScrollProperties.css';
 
-
-
 import Navbar from "../components/common/Navbar";
 import Footer from "../components/common/Footer";
 import ShuffleHero from "../components/common/ShuffleHero";
@@ -323,8 +321,6 @@ const HomePage = () => {
           </Motion.div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

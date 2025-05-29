@@ -120,14 +120,21 @@ const MyListings = () => {
       
       if (response.data.success) {
         toast.success('Listing deleted successfully');
-        
         setListings(listings.filter(listing => listing._id !== listingId));
       } else {
         toast.error(response.data.message || 'Failed to delete listing');
       }
     } catch (error) {
       console.error('Error deleting listing:', error);
-      toast.error('Error deleting listing. Please try again.');
+      if (error.response?.status === 401) {
+        toast.error('Please log in again to delete this listing');
+      } else if (error.response?.status === 403) {
+        toast.error('You are not authorized to delete this listing');
+      } else if (error.response?.status === 404) {
+        toast.error('Listing not found');
+      } else {
+        toast.error('Error deleting listing. Please try again.');
+      }
     }
   };
 
@@ -476,24 +483,22 @@ const MyListings = () => {
                       ? (typeof listing.images[0] === 'string' && listing.images[0].startsWith('http') 
                         ? listing.images[0] 
                         : `http://localhost:8000${typeof listing.images[0] === 'string' && listing.images[0].startsWith('/') ? listing.images[0] : `/${listing.images[0]}`}`)
-                      : 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22300%22%20height%3D%22200%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20300%20200%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A15pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22300%22%20height%3D%22200%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22110.5%22%20y%3D%22107.1%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E'} 
+                      : '/default-property.png'} 
                     alt={listing.title} 
                     className="listing-image"
                     onError={(e) => {
                       console.error(`Failed to load image for listing ${listing._id}:`, listing.images && listing.images[0] ? listing.images[0] : 'undefined');
                       e.target.onerror = null;
                       
-                      
                       if (listing.images && listing.images.length > 0 && listing.images[0] && typeof listing.images[0] === 'string' && !listing.images[0].startsWith('http')) {
                         const backendUrl = 'http://localhost:8000';
                         const imagePath = listing.images[0];
-                    
                         const filename = imagePath.split('/').pop();
                         const alternativeUrl = `${backendUrl}/uploads/images/${filename}`;
                         console.log(`Trying alternative URL: ${alternativeUrl}`);
                         e.target.src = alternativeUrl;
                       } else {
-                        e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22300%22%20height%3D%22200%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20300%20200%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A15pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22300%22%20height%3D%22200%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22110.5%22%20y%3D%22107.1%22%3EImage%20Error%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';
+                        e.target.src = '/default-property.png';
                       }
                     }}
                   />

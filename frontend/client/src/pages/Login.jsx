@@ -1,10 +1,8 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import "../styles/Login.css";
 import signupImage from "../../public/signup.png";
 import { useAuth } from "../context/AuthContext"; 
-import Navbar from "../components/common/Navbar";
-import Footer from "../components/common/Footer";
 
 const Login = () => {
   const [form, setForm] = React.useState({
@@ -15,6 +13,7 @@ const Login = () => {
   const [success, setSuccess] = React.useState(""); 
   const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth(); 
 
   const handleChange = (e) => {
@@ -28,16 +27,21 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      
       const result = await login(form.email, form.password);
       
       if (result.success) {
         setSuccess("Login successful. Seamless access granted.");
-        setTimeout(() => navigate("/"), 2000);
+        // Get the redirect path from location state or default to home
+        const from = location.state?.from?.pathname || "/";
+        // Use replace: true to prevent back-button issues
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1000);
       } else {
         setError(result.message || "Login failed. Please try again.");
       }
     } catch (err) {
+      console.error("Login error:", err);
       setError(
         err.response?.data?.message || 
         "Invalid credentials. Please try again."
@@ -48,14 +52,10 @@ const Login = () => {
   };
 
   return (
-    <>
-      <Navbar />
-      <div className="login-wrapper">
+    <div className="login-wrapper">
       <div className="login-card">
         <div className="login-left">
           <h2>Login to enjoy a customized and hassle-free experience</h2>
-
-
 
           <form onSubmit={handleSubmit} className="login-form">
             <input
@@ -93,12 +93,12 @@ const Login = () => {
               </div>
             )}
             {success && (
-                <div className="minimal-success">
-                    <p className="success-text">
-                        Seamless access granted. <span className="highlight"> Happy property hunting! →</span>
-                    </p>
-                    <div className="thin-line"></div>
-                </div>
+              <div className="minimal-success">
+                <p className="success-text">
+                  Seamless access granted. <span className="highlight"> Happy property hunting! →</span>
+                </p>
+                <div className="thin-line"></div>
+              </div>
             )}
           </form>
 
@@ -112,8 +112,6 @@ const Login = () => {
         </div>
       </div>
     </div>
-    <Footer />
-    </>
   );
 };
 

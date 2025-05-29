@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FaComments } from 'react-icons/fa';
 import { createChat } from '../../api/chatApi';
 import { useAuth } from '../../context/AuthContext';
@@ -8,22 +8,21 @@ import { toast } from 'react-toastify';
 const ChatButton = ({ listingId, ownerId, ownerName }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
 
   const handleStartChat = async () => {
     if (!isAuthenticated) {
-      toast.info('Please log in to chat with the owner');
-      navigate('/login');
+      toast.info('Please log in to start a chat');
+      navigate('/login', { state: { from: location.pathname } });
       return;
     }
 
-   
     if (!listingId || !ownerId) {
       console.error('Missing required props:', { listingId, ownerId });
       toast.error('Cannot start chat: Missing property information');
       return;
     }
-
 
     if (user._id === ownerId) {
       toast.info('This is your own listing');
@@ -34,10 +33,9 @@ const ChatButton = ({ listingId, ownerId, ownerName }) => {
       setLoading(true);
       console.log('Starting chat with:', { listingId, ownerId, user: user._id });
       
-  
       const response = await createChat(
         listingId.toString(), 
-        ownerId.toString()
+        ownerId.toString()  // This is the receiverId (owner of the listing)
       );
       
       console.log('Chat creation response:', response);

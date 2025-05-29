@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const { listingCache } = require('../utils/cache');
+const mongoose = require('mongoose');
 
 exports.createListing = async (req, res) => {
   try {
@@ -191,39 +192,116 @@ exports.getAllListings = async (req, res) => {
 exports.getListingById = async (req, res) => {
   try {
     const listingId = req.params.id;
-    const cacheKey = `listing_${listingId}`;
+    console.log('Fetching listing with ID:', listingId);
     
-  
-    let listing = listingCache.get(cacheKey);
+    if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
+      console.log('Invalid listing ID:', listingId);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid listing ID'
+      });
+    }
+    
+    const cacheKey = `listing_${listingId}`;
+    let listing = null;
+    
+    try {
+      listing = listingCache.get(cacheKey);
+      console.log('Cache lookup result:', listing ? 'Found' : 'Not found');
+    } catch (cacheError) {
+      console.error('Cache error:', cacheError);
+      // Continue without cache if there's an error
+    }
     
     if (!listing) {
-
-      listing = await Listing.findByIdAndUpdate(
-        listingId,
-        { $inc: { viewCount: 1 } },
-        { new: true }
-      ).populate('createdBy', 'name email profileImage');
-      
-      if (!listing) {
-        return res.status(404).json({ success: false, message: 'Listing not found' });
+      console.log('Listing not found in cache, fetching from database');
+      try {
+        listing = await Listing.findById(listingId)
+          .populate('createdBy', 'name email profileImage');
+        
+        if (!listing) {
+          console.log('Listing not found in database');
+          return res.status(404).json({
+            success: false,
+            message: 'Listing not found'
+          });
+        }
+        
+        // Update view count
+        listing.viewCount = (listing.viewCount || 0) + 1;
+        await listing.save();
+        
+        // Cache the listing
+        try {
+          listingCache.set(cacheKey, listing);
+          console.log('Listing cached successfully');
+        } catch (cacheError) {
+          console.error('Error caching listing:', cacheError);
+          // Continue without caching if there's an error
+        }
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error fetching listing from database',
+          error: dbError.message
+        });
       }
-      
-     
-      listingCache.set(cacheKey, listing);
     } else {
-   
-      Listing.findByIdAndUpdate(
-        listingId,
-        { $inc: { viewCount: 1 } }
-      ).exec().catch(err => console.error('Error updating view count:', err));
+      console.log('Listing found in cache');
+      // Update view count in background
+      try {
+        const updatedListing = await Listing.findByIdAndUpdate(
+          listingId,
+          { $inc: { viewCount: 1 } },
+          { new: true }
+        );
+        
+        if (!updatedListing) {
+          console.log('Listing no longer exists in database, removing from cache');
+          try {
+            listingCache.del(cacheKey);
+          } catch (cacheError) {
+            console.error('Error removing from cache:', cacheError);
+          }
+          return res.status(404).json({
+            success: false,
+            message: 'Listing not found'
+          });
+        }
+        
+        // Update cache with new view count
+        listing.viewCount = updatedListing.viewCount;
+        try {
+          listingCache.set(cacheKey, listing);
+          console.log('View count updated successfully');
+        } catch (cacheError) {
+          console.error('Error updating cache:', cacheError);
+          // Continue without updating cache if there's an error
+        }
+      } catch (updateError) {
+        console.error('Error updating view count:', updateError);
+        // Don't fail the request if view count update fails
+      }
     }
 
+    // Validate listing data before sending
+    if (!listing || !listing._id) {
+      console.error('Invalid listing data:', listing);
+      return res.status(500).json({
+        success: false,
+        message: 'Invalid listing data'
+      });
+    }
+
+    console.log('Sending listing response');
     res.status(200).json({
       success: true,
       data: listing
     });
   } catch (error) {
-    console.error('Error fetching listing by ID:', error.message);
+    console.error('Error in getListingById:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -237,17 +315,25 @@ exports.updateListing = async (req, res) => {
     const listingId = req.params.id;
     const updates = req.body;
 
-    
+    // Validate listing ID
+    if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid listing ID'
+      });
+    }
+
+    // Find the listing
     const listing = await Listing.findById(listingId);
     
     if (!listing) {
       return res.status(404).json({
         success: false,
-        message: 'Listing not found',
+        message: 'Listing not found'
       });
     }
     
-  
+    // Check authorization
     if (req.user.role !== 'admin' && listing.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -255,16 +341,48 @@ exports.updateListing = async (req, res) => {
       });
     }
 
+    // Handle file uploads if present
+    if (req.files) {
+      if (req.files.images) {
+        const imageFiles = Array.isArray(req.files.images) 
+          ? req.files.images 
+          : [req.files.images];
+        updates.images = imageFiles.map(file => `/uploads/images/${file.filename}`);
+      }
+      if (req.files.videos) {
+        const videoFiles = Array.isArray(req.files.videos) 
+          ? req.files.videos 
+          : [req.files.videos];
+        updates.videos = videoFiles.map(file => `/uploads/videos/${file.filename}`);
+      }
+    }
+
+    // Update the listing
     const updatedListing = await Listing.findByIdAndUpdate(
       listingId,
-      updates,
-      { new: true, runValidators: true }
-    );
+      { $set: updates },
+      { 
+        new: true, 
+        runValidators: true,
+        context: 'query'
+      }
+    ).populate('createdBy', 'name email profileImage');
 
+    if (!updatedListing) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update listing'
+      });
+    }
 
-    listingCache.delete(`listing_${listingId}`);
+    // Update cache
+    try {
+      listingCache.del(`listing_${listingId}`);
+    } catch (cacheError) {
+      console.error('Error updating cache:', cacheError);
+    }
 
-
+    // Create notification for price change
     if (updates.price && updates.price !== listing.price) {
       try {
         const { createNotification } = require('./notificationController');
@@ -284,14 +402,14 @@ exports.updateListing = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Listing updated successfully',
-      data: updatedListing,
+      data: updatedListing
     });
   } catch (error) {
-    console.error('Error updating listing:', error.message);
+    console.error('Error updating listing:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -350,8 +468,12 @@ exports.deleteListing = async (req, res) => {
 
 exports.getMyListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ createdBy: req.user._id });
+    console.log('Fetching listings for user:', req.user._id);
+    const listings = await Listing.find({ createdBy: req.user._id })
+      .populate('createdBy', 'name email profileImage')
+      .sort({ createdAt: -1 });
     
+    console.log('Found listings:', listings.length);
     res.status(200).json({
       success: true,
       count: listings.length,

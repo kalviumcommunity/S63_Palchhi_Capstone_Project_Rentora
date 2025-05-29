@@ -75,12 +75,11 @@ const AddListing = () => {
       toast.warning('You can upload a maximum of 3 videos');
       return;
     }
- 
+
     let totalSize = 0;
     for (let i = 0; i < files.length; i++) {
       totalSize += files[i].size;
       
-  
       const maxSize = e.target.name === 'images' ? 10 * 1024 * 1024 : 100 * 1024 * 1024;
       if (files[i].size > maxSize) {
         const sizeLimit = e.target.name === 'images' ? '10MB' : '100MB';
@@ -97,7 +96,6 @@ const AddListing = () => {
       uploadData.append(e.target.name, files[i]);
     }
 
- 
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
         const newProgress = prev + Math.random() * 15;
@@ -107,9 +105,7 @@ const AddListing = () => {
     
     try {
       console.log('Uploading files:', e.target.name, files.length);
-      console.log(`Using upload endpoint for ${e.target.name}`);
       
-    
       const response = await axios.post('/listings/upload-media', uploadData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -122,18 +118,15 @@ const AddListing = () => {
       
       console.log('Upload response:', response.data);
       
-      
       clearInterval(progressInterval);
       setUploadProgress(100);
-      
       
       setTimeout(() => {
         setIsUploading(false);
         
- 
         if (e.target.name === 'images') {
           let imageUrls = [];
-      
+          
           if (response.data.data && response.data.data.images) {
             imageUrls = response.data.data.images;
           } else {
@@ -141,31 +134,25 @@ const AddListing = () => {
             toast.warning('Received unexpected response format from server');
             return;
           }
-             console.log('Original image URLs from server:', imageUrls);
-          console.log('Window location origin:', window.location.origin);
+            
+          console.log('Original image URLs from server:', imageUrls);
           
           const absoluteUrls = imageUrls.map(path => {
-            let finalUrl;
             if (path.startsWith('http')) {
-              finalUrl = path;
-            } else {
-           
-              const backendUrl = 'http://localhost:8000';
-          
-              const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-              finalUrl = `${backendUrl}${normalizedPath}`;
+              return path;
             }
-            console.log(`Converting ${path} to ${finalUrl}`);
             
-       
-            const img = new Image();
-            img.src = finalUrl;
-            img.onerror = () => {
-              console.error(`Image URL verification failed: ${finalUrl}`);
-            };
-            img.onload = () => {
-              console.log(`Image URL verification successful: ${finalUrl}`);
-            };
+            const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const normalizedPath = path.startsWith('/uploads/images/') 
+              ? path 
+              : `/uploads/images/${path}`;
+            const finalUrl = `${backendUrl}${normalizedPath}`;
+            
+            console.log('Processing image URL:', {
+              originalPath: path,
+              normalizedPath,
+              finalUrl
+            });
             
             return finalUrl;
           });
@@ -179,10 +166,8 @@ const AddListing = () => {
           
           toast.success(`${absoluteUrls.length} image(s) uploaded successfully`);
         } else {
-      
           let videoUrls = [];
           
-    
           if (response.data.data && response.data.data.videos) {
             videoUrls = response.data.data.videos;
           } else {
@@ -191,24 +176,15 @@ const AddListing = () => {
             return;
           }
 
-          console.log('Original video URLs from server:', videoUrls);
-          
           const absoluteUrls = videoUrls.map(path => {
-            let finalUrl;
             if (path.startsWith('http')) {
-              finalUrl = path;
-            } else {
-              
-              const backendUrl = 'http://localhost:8000';
-             
-              const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-              finalUrl = `${backendUrl}${normalizedPath}`;
+              return path;
             }
-            console.log(`Converting ${path} to ${finalUrl}`);
-            return finalUrl;
+            
+            const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+            return `${backendUrl}${normalizedPath}`;
           });
-          
-          console.log('Processed video URLs:', absoluteUrls);
           
           setFormData(prev => ({
             ...prev,
@@ -219,19 +195,14 @@ const AddListing = () => {
         }
       }, 500);
     } catch (error) {
-      
       clearInterval(progressInterval);
-      
-      
       setIsUploading(false);
       setUploadProgress(0);
       
       console.error('Upload error:', error);
       
-      
       if (error.response && error.response.status === 404) {
         toast.error('Upload endpoint not found. Please check server configuration.');
-        console.error('API endpoint not found. Check your server routes and make sure they match the client requests.');
       } else {
         toast.error(error.response?.data?.message || 'Error uploading files. Please try again.');
       }
@@ -537,22 +508,25 @@ const AddListing = () => {
                         src={image}
                         alt={`Property ${index + 1}`}
                         className="preview-image"
+                        crossOrigin="anonymous"
                         onLoad={() => console.log(`Image ${index + 1} loaded successfully:`, image)}
                         onError={(e) => {
                           console.error(`Failed to load image ${index + 1}:`, image);
                           
-                          const backendUrl = 'http://localhost:8000';
+                          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
                           const imagePath = image.replace(backendUrl, '');
-                          const alternativeUrl = `${backendUrl}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
+                          const normalizedPath = imagePath.startsWith('/uploads/images/') 
+                            ? imagePath 
+                            : `/uploads/images/${imagePath}`;
+                          const alternativeUrl = `${backendUrl}${normalizedPath}`;
                           
                           console.log(`Trying alternative URL: ${alternativeUrl}`);
-                          
                           
                           if (alternativeUrl !== image) {
                             e.target.src = alternativeUrl;
                           } else {
                             e.target.onerror = null;
-                            e.target.src = 'https://placehold.co/150x150/gray/white?text=Image+Error';
+                            e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22150%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20150%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A12pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22150%22%20height%3D%22150%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2240%22%20y%3D%2280%22%3EImage%20Error%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';
                             toast.error(`Failed to load image ${index + 1}`);
                           }
                         }}

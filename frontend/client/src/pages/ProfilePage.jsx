@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { uploadProfileImage } from '../api/userApi';
+import { uploadProfileImage, updateUserProfile, deleteListing, deleteAccount, updateNotificationPreferences } from '../api/userApi';
+import { getWishlist, removeFromWishlist } from '../api/wishlistApi';
 import { FaCamera, FaUser, FaEdit, FaTrash, FaStar } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import Loader from '../components/common/Loader';
 import '../styles/Profile.css';
 import { isGoogleProfileImage, DEFAULT_AVATAR_SVG, getSafeProfileImageUrl } from '../utils/imageUtils';
 
 const ProfilePage = () => {
-  const { user, updateProfile, refreshUserData } = useAuth();
+  const { user, updateProfile, refreshUserData, setUser, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
@@ -23,14 +23,23 @@ const ProfilePage = () => {
   });
   const [userListings, setUserListings] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
-
-  
-  const [googleImageFailed, setGoogleImageFailed] = useState(false);
-
   const [imageRefreshKey, setImageRefreshKey] = useState(Date.now());
 
-  
+  const [googleImageFailed, setGoogleImageFailed] = useState(false);
+
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    emailNotifications: true,
+    smsNotifications: false,
+    marketingEmails: true,
+    profileVisibility: true,
+    showContactInfo: false
+  });
+
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       console.log('User data updated in ProfilePage:', user);
@@ -41,25 +50,28 @@ const ProfilePage = () => {
         profileImage: user.profileImage || '',
       });
       
-      
       setGoogleImageFailed(false);
       
-    
       setImageRefreshKey(Date.now());
       
-    
       if (user.profileImage && isGoogleProfileImage(user.profileImage)) {
         console.log('Google profile image detected - may use fallback if rate limited');
       } else if (user.profileImage) {
         console.log(`Profile data loaded with profile image: ${user.profileImage}`);
       }
+
+      setNotificationPreferences({
+        emailNotifications: user.preferences?.emailNotifications ?? true,
+        smsNotifications: user.preferences?.smsNotifications ?? false,
+        marketingEmails: user.preferences?.marketingEmails ?? true,
+        profileVisibility: user.preferences?.profileVisibility ?? true,
+        showContactInfo: user.preferences?.showContactInfo ?? false
+      });
     }
   }, [user]);
   
-  
   useEffect(() => {
     const handleProfileUpdate = () => {
-    
       setImageRefreshKey(Date.now());
       setGoogleImageFailed(false);
     };
@@ -103,6 +115,31 @@ const ProfilePage = () => {
     fetchUserListings();
   }, [user]);
 
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (user) {
+        try {
+          setWishlistLoading(true);
+          const response = await getWishlist();
+          if (response.success) {
+            setWishlistItems(response.data);
+          } else {
+            setMessage({ type: 'error', text: response.message || 'Failed to load wishlist' });
+          }
+        } catch (error) {
+          console.error('Error fetching wishlist:', error);
+          setMessage({ type: 'error', text: 'An error occurred while loading your wishlist' });
+        } finally {
+          setWishlistLoading(false);
+        }
+      }
+    };
+
+    if (activeTab === 'wishlist') {
+      fetchWishlist();
+    }
+  }, [user, activeTab]);
+
   if (!user) {
     navigate('/login');
     return null;
@@ -114,22 +151,21 @@ const ProfilePage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
   const handleEditToggle = () => {
-    setEditMode(!editMode);
-    
-    if (!editMode) {
+    if (editMode) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
       });
     }
+    setEditMode(!editMode);
   };
 
   const handleSubmit = async (e) => {
@@ -138,35 +174,25 @@ const ProfilePage = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const result = await updateProfile(formData);
+      const result = await updateUserProfile(user._id, formData);
       
       if (result.success) {
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
         setEditMode(false);
-        await refreshUserData();
         
-      
-        setTimeout(() => {
-          setMessage({ type: '', text: '' });
-        }, 3000);
+        const updatedUser = { ...user, ...result.data };
+        setUser(updatedUser);
       } else {
         setMessage({ type: 'error', text: result.message || 'Failed to update profile' });
-        
-        
-        setTimeout(() => {
-          setMessage({ type: '', text: '' });
-        }, 5000);
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'An error occurred while updating profile' });
       console.error('Profile update error:', error);
-      
-  
+    } finally {
+      setLoading(false);
       setTimeout(() => {
         setMessage({ type: '', text: '' });
       }, 5000);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -181,118 +207,262 @@ const ProfilePage = () => {
     const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
       setMessage({ type: 'error', text: 'Only JPG, JPEG, and PNG files are allowed' });
-      
-      
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 5000);
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024; 
+    const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
       setMessage({ type: 'error', text: 'File size should be less than 5MB' });
-      
-      
-      setTimeout(() => {
-        setMessage({ type: '', text: '' });
-      }, 5000);
       return;
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     setMessage({ type: '', text: '' });
 
     try {
-    
-      const localImageUrl = URL.createObjectURL(file);
-      
-    
-      setFormData({
-        ...formData,
-        profileImage: localImageUrl
-      });
-      
-      
-      const uploadFormData = new FormData();
-      uploadFormData.append('images', file);
+      const formData = new FormData();
+      formData.append('profileImage', file);
 
-  
-      const result = await uploadProfileImage(uploadFormData);
+      const result = await uploadProfileImage(user._id, formData);
       
       if (result.success) {
-        console.log('Upload response:', result);
+        setMessage({ type: 'success', text: 'Profile image updated successfully!' });
         
-      
-        const imageUrl = result.data[0];
-        console.log('Image URL from server:', imageUrl);
+        // Create a temporary URL for the uploaded file to show it immediately
+        const tempImageUrl = URL.createObjectURL(file);
         
+        // Update the user context with the new image path
+        const updatedUser = { 
+          ...user, 
+          profileImage: result.data.profileImage
+        };
         
-        const updateResult = await updateProfile({ profileImage: imageUrl });
-        console.log('Profile update result:', updateResult);
+        // Update the user context
+        setUser(updatedUser);
         
-        if (updateResult.success) {
+        // Force a re-render of the profile image
+        setImageRefreshKey(Date.now());
         
-          const refreshResult = await refreshUserData();
-          console.log('Refresh user data result:', refreshResult);
-          
-          setMessage({ type: 'success', text: 'Profile image updated successfully!' });
-          
-          
-          setTimeout(() => {
-            setMessage({ type: '', text: '' });
-          }, 3000);
-        } else {
-          setMessage({ type: 'error', text: updateResult.message || 'Failed to update profile with new image' });
-          
-          
-          setTimeout(() => {
-            setMessage({ type: '', text: '' });
-          }, 5000);
-        }
-      } else {
-        setMessage({ type: 'error', text: 'Failed to upload profile image' });
-        
-  
+        // Dispatch a custom event to notify other components
+        window.dispatchEvent(new CustomEvent('user-profile-updated', {
+          detail: { timestamp: Date.now() }
+        }));
+
+        // Clean up the temporary URL after a short delay
         setTimeout(() => {
-          setMessage({ type: '', text: '' });
-        }, 5000);
+          URL.revokeObjectURL(tempImageUrl);
+        }, 1000);
+      } else {
+        setMessage({ type: 'error', text: result.message || 'Failed to upload profile image' });
       }
     } catch (error) {
       console.error('Image upload error:', error);
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.message || 'An error occurred while uploading image'
+        text: error.message === 'Network Error' 
+          ? 'Server connection failed. Please check if the server is running.' 
+          : 'An error occurred while uploading the image'
       });
-      
-      
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
       setTimeout(() => {
         setMessage({ type: '', text: '' });
       }, 5000);
-    } finally {
-      setIsUploading(false);
     }
   };
 
   const getRoleColor = (role) => {
-    switch (role) {
-      case 'buyer':
-        return 'buyer';
-      case 'seller':
-        return 'seller';
+    if (!role) return 'role-default';
+    
+    switch (role.toLowerCase()) {
       case 'admin':
-        return 'admin';
+        return 'role-admin';
+      case 'seller':
+        return 'role-seller';
+      case 'buyer':
+        return 'role-buyer';
       default:
-        return '';
+        return 'role-default';
     }
   };
 
-  const StatCard = ({ value, label }) => (
-    <div className="stat-card">
-      <h3>{value}</h3>
-      <p>{label}</p>
-    </div>
-  );
+  const StatCard = ({ value, label }) => {
+    const displayValue = isNaN(value) ? 0 : value;
+    return (
+      <div className="stat-card">
+        <h3>{displayValue}</h3>
+        <p>{label}</p>
+      </div>
+    );
+  };
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/uploads/images/default-avatar.jpg';
+    if (isGoogleProfileImage(imagePath)) {
+      return imagePath;
+    }
+    
+    // Clean the path by removing any duplicate directories and normalizing slashes
+    const cleanPath = imagePath
+      .replace(/\/images\/images\//g, '/images/')  // Remove duplicate images
+      .replace(/\/+/g, '/')                        // Remove multiple consecutive slashes
+      .replace(/^\/+|\/+$/g, '');                  // Remove leading/trailing slashes
+    
+    // For listing images, ensure they're in the correct directory
+    if (cleanPath.includes('images-')) {
+      return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/uploads/images/${cleanPath.split('/').pop()}`;
+    }
+    
+    // For other images (like profile images), use the standard path
+    const normalizedPath = cleanPath.startsWith('uploads/') ? `/${cleanPath}` : `/uploads/${cleanPath}`;
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${normalizedPath}`;
+  };
+
+  const handleImageError = (e, imagePath) => {
+    console.log("Image load failure for path:", imagePath);
+    e.target.onerror = null;
+    
+    if (isGoogleProfileImage(imagePath)) {
+      console.log("Google image failed to load - using fallback");
+      setGoogleImageFailed(true);
+      
+      if (imagePath.includes('googleusercontent.com')) {
+        const encodedUrl = encodeURIComponent(imagePath);
+        e.target.src = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/proxy/google-image?imageUrl=${encodedUrl}&t=${Date.now()}`;
+      } else {
+        e.target.src = '/uploads/images/default-avatar.jpg';
+      }
+    } else {
+      // Try alternative paths for local images
+      const filename = imagePath.split('/').pop();
+      console.log("Attempting to load image with filename:", filename);
+      
+      // For listing images, try these paths in order
+      const alternativePaths = [
+        `/uploads/images/${filename}`,
+        `/uploads/${filename}`,
+        `/uploads/profile-images/${filename}`
+      ];
+      
+      let currentPathIndex = 0;
+      const tryNextPath = () => {
+        if (currentPathIndex < alternativePaths.length) {
+          const nextPath = alternativePaths[currentPathIndex];
+          const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${nextPath}?t=${Date.now()}`;
+          console.log(`Attempt ${currentPathIndex + 1}: Trying path: ${fullUrl}`);
+          e.target.src = fullUrl;
+          currentPathIndex++;
+        } else {
+          console.log("All attempts failed, using default image");
+          e.target.src = '/default-property.png';
+        }
+      };
+      
+      e.target.onerror = tryNextPath;
+      tryNextPath();
+    }
+  };
+
+  const handleDeleteListing = async (listingId) => {
+    if (!window.confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await deleteListing(listingId);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Listing deleted successfully!' });
+        // Update the listings list
+        setUserListings(prevListings => prevListings.filter(listing => listing._id !== listingId));
+      } else {
+        setMessage({ type: 'error', text: response.message || 'Failed to delete listing' });
+      }
+    } catch (error) {
+      console.error('Error deleting listing:', error);
+      setMessage({ type: 'error', text: 'An error occurred while deleting the listing' });
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 5000);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        setLoading(true);
+        await deleteAccount(user._id);
+        logout();
+        navigate('/');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to delete account' });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handlePreferenceChange = async (preference, value) => {
+    try {
+      setLoading(true);
+      const updatedPreferences = {
+        ...notificationPreferences,
+        [preference]: value
+      };
+      
+      const response = await updateNotificationPreferences(user._id, updatedPreferences);
+      
+      if (response.success) {
+        setNotificationPreferences(updatedPreferences);
+        setMessage({ type: 'success', text: 'Preferences updated successfully!' });
+        
+        // Update user context with new preferences
+        setUser(prevUser => ({
+          ...prevUser,
+          preferences: updatedPreferences
+        }));
+      } else {
+        setMessage({ type: 'error', text: response.message || 'Failed to update preferences' });
+      }
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      setMessage({ type: 'error', text: 'An error occurred while updating preferences' });
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 5000);
+    }
+  };
+
+  const handleRemoveFromWishlist = async (listingId) => {
+    try {
+      setLoading(true);
+      const response = await removeFromWishlist(user._id, listingId);
+      
+      if (response.success) {
+        setMessage({ type: 'success', text: 'Property removed from wishlist!' });
+        // Update the wishlist items
+        setWishlistItems(prevItems => prevItems.filter(item => item._id !== listingId));
+      } else {
+        setMessage({ type: 'error', text: response.message || 'Failed to remove from wishlist' });
+      }
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      setMessage({ type: 'error', text: 'An error occurred while removing from wishlist' });
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 5000);
+    }
+  };
 
   return (
     <>
@@ -311,7 +481,6 @@ const ProfilePage = () => {
               {isUploading ? (
                 <Loader />
               ) : user.profileImage ? (
-                
                 isGoogleProfileImage(user.profileImage) && googleImageFailed ? (
                   <div 
                     className="profile-image-placeholder"
@@ -321,7 +490,7 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   <img 
-                    src={`${getSafeProfileImageUrl(user.profileImage, DEFAULT_AVATAR_SVG)}&refresh=${imageRefreshKey}`}
+                    src={`${getImageUrl(user.profileImage)}?t=${imageRefreshKey}`}
                     alt={user.name} 
                     className="profile-image" 
                     onClick={handleProfileImageClick}
@@ -331,32 +500,11 @@ const ProfilePage = () => {
                     decoding="async" 
                     onLoad={() => {
                       console.log("Profile image loaded successfully");
-              
                       if (googleImageFailed) {
                         setGoogleImageFailed(false);
                       }
                     }}
-                    onError={(e) => {
-                      console.log("Using default avatar due to image load failure");
-                      e.target.onerror = null; 
-                      
-                    
-                      if (isGoogleProfileImage(user.profileImage)) {
-                        console.log("Google image failed to load - using fallback for future renders");
-                        setGoogleImageFailed(true);
-                        
-                      
-                        if (user.profileImage.includes('googleusercontent.com')) {
-                          
-                          const encodedUrl = encodeURIComponent(user.profileImage);
-                          e.target.src = `http://localhost:8000/api/proxy/google-image?imageUrl=${encodedUrl}&t=${Date.now()}`;
-                        } else {
-                          e.target.src = DEFAULT_AVATAR_SVG;
-                        }
-                      } else {
-                        e.target.src = DEFAULT_AVATAR_SVG; 
-                      }
-                    }}
+                    onError={(e) => handleImageError(e, user.profileImage)}
                   />
                 )
               ) : (
@@ -378,7 +526,7 @@ const ProfilePage = () => {
                 type="file"
                 ref={fileInputRef}
                 className="file-input"
-                accept="image/jpeg,image/png,image/jpg"
+                accept="image/*"
                 onChange={handleFileChange}
               />
             </div>
@@ -387,8 +535,8 @@ const ProfilePage = () => {
               <h2>{user.name}</h2>
               <p>{user.email}</p>
               {user.phone && <p>{user.phone}</p>}
-              <span className={`profile-role ${getRoleColor(user.role)}`}>
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              <span className={`profile-role ${getRoleColor(user?.role)}`}>
+                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
               </span>
             </div>
 
@@ -492,7 +640,7 @@ const ProfilePage = () => {
                     type="text"
                     id="role"
                     className="form-control"
-                    value={user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                    value={user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
                     disabled
                   />
                 </div>
@@ -539,27 +687,54 @@ const ProfilePage = () => {
                 <div className="property-list">
                   {userListings.map(listing => (
                     <div key={listing._id} className="property-card">
-                      <img 
-                        src={listing.images && listing.images.length > 0 
-                          ? (listing.images[0].startsWith('http') 
-                            ? listing.images[0] 
-                            : `http://localhost:8000${listing.images[0]}`)
-                          : 'https://via.placeholder.com/300x200?text=No+Image'} 
-                        alt={listing.title} 
-                        className="property-image"
-                        onClick={() => navigate(`/listings/${listing._id}`)}
-                        onError={(e) => {
-                          console.error(`Failed to load image for listing ${listing._id}:`, listing.images[0]);
-                          e.target.onerror = null;
-                          e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error';
-                        }}
-                      />
+                      <div className="property-image-container">
+                        <img 
+                          src={listing.images && listing.images.length > 0 
+                            ? getImageUrl(listing.images[0])
+                            : '/default-property.png'} 
+                          alt={listing.title} 
+                          className="property-image"
+                          onClick={() => navigate(`/property/${listing._id}`)}
+                          onError={(e) => {
+                            console.error(`Failed to load image for listing ${listing._id}:`, listing.images[0]);
+                            e.target.onerror = null;
+                            
+                            if (listing.images && listing.images.length > 0) {
+                              const imagePath = listing.images[0];
+                              const filename = imagePath.split('/').pop();
+                              
+                              const alternativePaths = [
+                                `/uploads/images/${filename}`,
+                                `/uploads/${filename}`,
+                                `/uploads/profile-images/${filename}`
+                              ];
+                              
+                              let currentPathIndex = 0;
+                              const tryNextPath = () => {
+                                if (currentPathIndex < alternativePaths.length) {
+                                  const nextPath = alternativePaths[currentPathIndex];
+                                  console.log(`Trying alternative path: ${nextPath}`);
+                                  e.target.src = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${nextPath}?t=${Date.now()}`;
+                                  currentPathIndex++;
+                                } else {
+                                  e.target.src = '/default-property.png';
+                                }
+                              };
+                              
+                              e.target.onerror = tryNextPath;
+                              tryNextPath();
+                            } else {
+                              e.target.src = '/default-property.png';
+                            }
+                          }}
+                        />
+                        <div className="property-price">₹{listing.price.toLocaleString()}</div>
+                      </div>
                       <div className="property-details">
                         <h3 className="property-title">{listing.title}</h3>
                         <p className="property-location">
                           {listing.location.city}, {listing.location.address}
                         </p>
-                        <p className="property-price">₹{listing.price.toLocaleString()}</p>
                         <div className="property-meta">
                           <span>{listing.bedrooms} Beds</span>
                           <span>{listing.bathrooms} Baths</span>
@@ -576,11 +751,7 @@ const ProfilePage = () => {
                           </button>
                           <button 
                             className="btn btn-danger btn-sm" 
-                            onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this listing?')) {
-                                // Delete logic here
-                              }
-                            }}
+                            onClick={() => handleDeleteListing(listing._id)}
                           >
                             <FaTrash /> Delete
                           </button>
@@ -594,24 +765,75 @@ const ProfilePage = () => {
                   <p>You haven't created any listings yet.</p>
                   <button 
                     className="btn btn-primary"
-                    onClick={() => navigate('/my-listings')}
+                    onClick={() => navigate('/add-listing')}
                   >
-                    Manage Your Properties
+                    Create Your First Listing
                   </button>
                 </div>
               )}
             </div>
 
             <div className={`tab-content ${activeTab === 'wishlist' ? 'active' : ''}`}>
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <p>Your wishlist is empty.</p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => navigate('/')}
-                >
-                  Browse Properties
-                </button>
-              </div>
+              {wishlistLoading ? (
+                <Loader />
+              ) : wishlistItems.length > 0 ? (
+                <div className="property-list">
+                  {wishlistItems.map(item => (
+                    <div key={item._id} className="property-card">
+                      <img 
+                        src={item.images && item.images.length > 0 
+                          ? getImageUrl(item.images[0])
+                          : '/default-property.png'} 
+                        alt={item.title} 
+                        className="property-image"
+                        onClick={() => navigate(`/listings/${item._id}`)}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/default-property.png';
+                        }}
+                      />
+                      <div className="property-details">
+                        <h3 className="property-title">{item.title}</h3>
+                        <p className="property-location">
+                          {item.location.city}, {item.location.address}
+                        </p>
+                        <p className="property-price">₹{item.price.toLocaleString()}</p>
+                        <div className="property-meta">
+                          <span>{item.bedrooms} Beds</span>
+                          <span>{item.bathrooms} Baths</span>
+                          {item.squareFeet && (
+                            <span>{item.squareFeet} sq.ft</span>
+                          )}
+                        </div>
+                        <div className="property-actions">
+                          <button 
+                            className="btn btn-primary btn-sm" 
+                            onClick={() => navigate(`/listings/${item._id}`)}
+                          >
+                            View Details
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-sm" 
+                            onClick={() => handleRemoveFromWishlist(item._id)}
+                          >
+                            <FaTrash /> Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <p>Your wishlist is empty.</p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => navigate('/properties')}
+                  >
+                    Browse Properties
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className={`tab-content ${activeTab === 'reviews' ? 'active' : ''}`}>
@@ -624,15 +846,30 @@ const ProfilePage = () => {
               <div className="settings-section">
                 <h3>Notification Preferences</h3>
                 <div className="notification-option">
-                  <input type="checkbox" id="emailNotifications" defaultChecked />
+                  <input 
+                    type="checkbox" 
+                    id="emailNotifications" 
+                    checked={notificationPreferences.emailNotifications}
+                    onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
+                  />
                   <label htmlFor="emailNotifications">Email Notifications</label>
                 </div>
                 <div className="notification-option">
-                  <input type="checkbox" id="smsNotifications" />
+                  <input 
+                    type="checkbox" 
+                    id="smsNotifications" 
+                    checked={notificationPreferences.smsNotifications}
+                    onChange={(e) => handlePreferenceChange('smsNotifications', e.target.checked)}
+                  />
                   <label htmlFor="smsNotifications">SMS Notifications</label>
                 </div>
                 <div className="notification-option">
-                  <input type="checkbox" id="marketingEmails" defaultChecked />
+                  <input 
+                    type="checkbox" 
+                    id="marketingEmails" 
+                    checked={notificationPreferences.marketingEmails}
+                    onChange={(e) => handlePreferenceChange('marketingEmails', e.target.checked)}
+                  />
                   <label htmlFor="marketingEmails">Marketing Emails</label>
                 </div>
               </div>
@@ -640,11 +877,21 @@ const ProfilePage = () => {
               <div className="settings-section">
                 <h3>Privacy Settings</h3>
                 <div className="notification-option">
-                  <input type="checkbox" id="profileVisibility" defaultChecked />
+                  <input 
+                    type="checkbox" 
+                    id="profileVisibility" 
+                    checked={notificationPreferences.profileVisibility}
+                    onChange={(e) => handlePreferenceChange('profileVisibility', e.target.checked)}
+                  />
                   <label htmlFor="profileVisibility">Make profile visible to others</label>
                 </div>
                 <div className="notification-option">
-                  <input type="checkbox" id="showContactInfo" />
+                  <input 
+                    type="checkbox" 
+                    id="showContactInfo" 
+                    checked={notificationPreferences.showContactInfo}
+                    onChange={(e) => handlePreferenceChange('showContactInfo', e.target.checked)}
+                  />
                   <label htmlFor="showContactInfo">Show contact information on listings</label>
                 </div>
               </div>
@@ -652,7 +899,11 @@ const ProfilePage = () => {
               <div className="delete-account">
                 <h3>Delete Account</h3>
                 <p>Once you delete your account, there is no going back. Please be certain.</p>
-                <button className="btn btn-danger">
+                <button 
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                  disabled={loading}
+                >
                   <FaTrash style={{ marginRight: '0.5rem' }} /> Delete Account
                 </button>
               </div>
@@ -660,7 +911,6 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
-      <Footer />
     </>
   );
 };

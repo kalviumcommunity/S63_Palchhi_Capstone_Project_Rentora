@@ -5,36 +5,24 @@ import gsap from "gsap";
 import { useWindowScroll } from "react-use";
 import { TiLocationArrow } from "react-icons/ti";
 import { pageTransition } from "../../utils/pageTransitions";
+import { FaSearch, FaComments, FaHome, FaBuilding, FaKey, FaUser, FaSignOutAlt } from "react-icons/fa";
 
 import "../../styles/Navbar.css";
 import "../../styles/SearchBar.css";
 import "../../styles/animations.css";
-import logo from "../../../public/rentora-logo.png";
-import defaultAvatar from "../../../public/default-avatar.png";
+import logo from "/rentora-logo.png";
 import NotificationsDropdown from "../notifications/NotificationsDropdown";
 import SearchBar from "./SearchBar";
 import { getUnreadCount } from "../../api/notificationApi";
 import { isGoogleProfileImage, getSafeProfileImageUrl } from "../../utils/imageUtils";
-import { FaSearch, FaComments } from "react-icons/fa";
+
+// Default avatar as a data URL
+const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5e7eb'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
-
-  let user = null;
-  let logout = () => {
-    console.log('Logout function not available');
-    navigate('/login');
-  };
-  
-  try {
-    const auth = useAuth();
-    user = auth.user;
-    logout = auth.logout;
-  } catch {
-    console.log('Auth context not available in this component');
-  }
+  const { user, logout } = useAuth();
   
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [showSearchBar, setShowSearchBar] = React.useState(false);
@@ -42,10 +30,24 @@ const Navbar = () => {
   const searchRef = React.useRef(null);
   const navContainerRef = React.useRef(null);
 
+  // Add debug logging for user state changes
+  React.useEffect(() => {
+    console.log('Navbar - User state changed:', user);
+    console.log('Navbar - Current token:', localStorage.getItem('token'));
+  }, [user]);
+
+  // Add debug logging for component mount
+  React.useEffect(() => {
+    console.log('Navbar mounted - Initial user state:', user);
+    console.log('Navbar mounted - Initial token:', localStorage.getItem('token'));
+  }, []);
+
   const { y: currentScrollY } = useWindowScroll();
   const [isNavVisible, setIsNavVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
+  const [googleImageFailed, setGoogleImageFailed] = React.useState(false);
 
+  // Handle click outside dropdowns
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -59,77 +61,21 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
 
-  const [googleImageFailed, setGoogleImageFailed] = React.useState(false);
-  
+  // Handle profile image loading
   React.useEffect(() => {
-    console.log("Navbar user state updated:", user ? user.name : "No user");
-    
-  
-    setGoogleImageFailed(false);
-    
-  
     if (user && user.profileImage) {
-      if (isGoogleProfileImage(user.profileImage)) {
-        console.log("Google profile image detected - skipping preload to avoid rate limits");
-      } else {
-        console.log("Preloading non-Google profile image");
+      if (!isGoogleProfileImage(user.profileImage)) {
         const img = new Image();
         img.src = user.profileImage.includes('http') 
           ? user.profileImage
           : `http://localhost:8000${user.profileImage}`;
-        img.onload = () => console.log("Profile image loaded successfully in navbar");
-        img.onerror = () => console.log("Profile image preload failed, will use fallback if needed");
+        img.onerror = () => setGoogleImageFailed(true);
       }
     }
   }, [user]);
-  
- 
-  const fetchUnreadCount = async (forceRefresh = false) => {
-    if (!user) return;
-    
-    try {
-      
-      await getUnreadCount(forceRefresh);
-    } catch (error) {
-      console.error('Failed to fetch unread count in Navbar:', error);
-    }
-  };
-  
-  React.useEffect(() => {
-    if (!user) return;
-    
-  
-    const initialFetchTimer = setTimeout(() => {
-      fetchUnreadCount(false); 
-    }, 8000); 
-    
 
-    const intervalId = setInterval(() => {
-      fetchUnreadCount(false); 
-    }, 300000); 
-    
-
-    return () => {
-      clearInterval(intervalId);
-      clearTimeout(initialFetchTimer);
-    };
-  }, [user]);
-  
-
-  React.useEffect(() => {
-    const handleProfileUpdate = (event) => {
-      console.log('Received profile update event in Navbar:', event.detail);
-    
-      setShowDropdown(false); 
-    };
-    
-    window.addEventListener('user-profile-updated', handleProfileUpdate);
-    return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
-  }, []);
-
- 
+  // Handle scroll behavior
   React.useEffect(() => {
     if (currentScrollY === 0) {
       setIsNavVisible(true);
@@ -145,6 +91,7 @@ const Navbar = () => {
     setLastScrollY(currentScrollY);
   }, [currentScrollY, lastScrollY]);
 
+  // Animate navbar visibility
   React.useEffect(() => {
     gsap.to(navContainerRef.current, {
       y: isNavVisible ? 0 : -100,
@@ -153,149 +100,78 @@ const Navbar = () => {
     });
   }, [isNavVisible]);
 
-  const handleNavClick = async (path, isHash = false) => {
-    if (isHash) {
-  
-      const element = document.querySelector(`#${path.toLowerCase()}`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+  const handleNavClick = (path) => {
+    setShowDropdown(false);
+    if (path === '/login' || path === '/register') {
+      navigate(path);
     } else {
-   
-      if (path === '/login' || path === '/signup' || path === '/register') {
-       
-        navigate(path);
-      } else {
-    
-        pageTransition.navigate(navigate, path);
-      }
+      pageTransition.navigate(navigate, path);
     }
   };
 
- 
   const isPropertiesPage = location.pathname === '/properties';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/signup';
+  const getProfileImageUrl = (imageUrl) => {
+    if (!imageUrl) return defaultAvatar;
+    
+    try {
+      if (imageUrl.includes('http')) {
+        return imageUrl;
+      }
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();
+      return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${imageUrl}?t=${timestamp}`;
+    } catch (error) {
+      console.error('Error processing profile image URL:', error);
+      return defaultAvatar;
+    }
+  };
 
   return (
-    <div
-      ref={navContainerRef}
-      className="fixed inset-x-0 top-4 z-50 h-16 border-none transition-all duration-700 sm:inset-x-6"
-    >
+    <div ref={navContainerRef} className="navbar-container">
       <nav className="navbar">
         <div className="navbar-left">
-          <div className="nav-item">
-            <Link to="/" onClick={(e) => { 
-              e.preventDefault(); 
-              
-              if (isAuthPage) {
-                navigate('/');
-              } else {
-                pageTransition.navigate(navigate, '/');
-              }
-            }}>HOME</Link>
-            <div className="dropdown-menu">
-              <Link to="/about" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/about');
-              }}>About Us</Link>
-              <Link to="/contact" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/contact');
-              }}>Contact</Link>
-              <Link to="/faq" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/faq');
-              }}>FAQ</Link>
-            </div>
-          </div>
-          
+          <Link to="/" className="nav-item" onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('/');
+          }}>
+            <FaHome className="nav-icon" /> HOME
+          </Link>
+
           {user && (
-            <div className="nav-item">
-              <Link to="/my-listings" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/my-listings');
-              }}>MY PROPERTIES</Link>
-              <div className="dropdown-menu">
-                <Link to="/my-listings" onClick={(e) => { 
-                  e.preventDefault(); 
-                  handleNavClick('/my-listings');
-                }}>All My Properties</Link>
-                <Link to="/my-listings?status=active" onClick={(e) => { 
-                  e.preventDefault(); 
-                  handleNavClick('/my-listings?status=active');
-                }}>Active Listings</Link>
-                <Link to="/my-listings?status=pending" onClick={(e) => { 
-                  e.preventDefault(); 
-                  handleNavClick('/my-listings?status=pending');
-                }}>Pending Listings</Link>
-                <Link to="/wishlist" onClick={(e) => { 
-                  e.preventDefault(); 
-                  handleNavClick('/wishlist');
-                }}>Favorite Properties</Link>
-                <Link to="/add-property" onClick={(e) => { 
-                  e.preventDefault(); 
-                  handleNavClick('/add-property');
-                }}>Add New Property</Link>
-              </div>
-            </div>
+            <Link to="/my-listings" className="nav-item" onClick={(e) => {
+              e.preventDefault();
+              handleNavClick('/my-listings');
+            }}>
+              <FaBuilding className="nav-icon" /> MY PROPERTIES
+            </Link>
           )}
-          
-          <div className="nav-item">
-            <Link to="/properties?propertyType=rent" onClick={(e) => { 
-              e.preventDefault(); 
-              handleNavClick('/properties?propertyType=rent');
-            }}>RENT</Link>
-            <div className="dropdown-menu">
-              <Link to="/properties?propertyType=rent&category=apartment" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=rent&category=apartment');
-              }}>Apartments</Link>
-              <Link to="/properties?propertyType=rent&category=house" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=rent&category=house');
-              }}>Houses</Link>
-              <Link to="/properties?propertyType=rent&category=villa" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=rent&category=villa');
-              }}>Villas</Link>
-              <Link to="/properties?propertyType=rent&category=commercial" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=rent&category=commercial');
-              }}>Commercial</Link>
-            </div>
-          </div>
-          
-          <div className="nav-item">
-            <Link to="/properties?propertyType=sale" onClick={(e) => { 
-              e.preventDefault(); 
-              handleNavClick('/properties?propertyType=sale');
-            }}>BUY</Link>
-            <div className="dropdown-menu">
-              <Link to="/properties?propertyType=sale&category=apartment" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=sale&category=apartment');
-              }}>Apartments</Link>
-              <Link to="/properties?propertyType=sale&category=house" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=sale&category=house');
-              }}>Houses</Link>
-              <Link to="/properties?propertyType=sale&category=villa" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=sale&category=villa');
-              }}>Villas</Link>
-              <Link to="/properties?propertyType=sale&category=land" onClick={(e) => { 
-                e.preventDefault(); 
-                handleNavClick('/properties?propertyType=sale&category=land');
-              }}>Land</Link>
-            </div>
-          </div>
+
+          <Link to="/properties?propertyType=rent" className="nav-item" onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('/properties?propertyType=rent');
+          }}>
+            <FaKey className="nav-icon" /> RENT
+          </Link>
+
+          <Link to="/properties?propertyType=sale" className="nav-item" onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('/properties?propertyType=sale');
+          }}>
+            <FaBuilding className="nav-icon" /> BUY
+          </Link>
         </div>
-        
+
         <div className="navbar-center">
-          <img src={logo} alt="Rentora Trusted Homes" className="navbar-logo" />
+          <Link to="/" onClick={(e) => {
+            e.preventDefault();
+            handleNavClick('/');
+          }}>
+            <img src={logo} alt="Rentora" className="navbar-logo" />
+          </Link>
         </div>
-        
+
         <div className="navbar-right">
           {!isPropertiesPage && (
             <div className="search-icon-container" ref={searchRef}>
@@ -313,88 +189,55 @@ const Navbar = () => {
               )}
             </div>
           )}
-          
+
           {user ? (
             <>
-              <Link to="/wishlist" className="navbar-icon-link" title="Wishlist" onClick={(e) => { 
-                e.preventDefault(); 
+              <Link to="/wishlist" className="navbar-icon-link" title="Wishlist" onClick={(e) => {
+                e.preventDefault();
                 handleNavClick('/wishlist');
               }}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                  />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </Link>
-              
-              <Link to="/chats" className="navbar-icon-link" title="Messages" onClick={(e) => { 
-                e.preventDefault(); 
+
+              <Link to="/chats" className="navbar-icon-link" title="Messages" onClick={(e) => {
+                e.preventDefault();
                 handleNavClick('/chats');
               }}>
                 <FaComments />
               </Link>
-              
+
               <NotificationsDropdown />
-              
+
               <div className="profile-section" ref={dropdownRef}>
                 <button 
                   className="profile-button"
                   onClick={() => handleNavClick('/profile')}
                 >
-                  {/* Skip Google image if it previously failed */}
-                  {user.profileImage && isGoogleProfileImage(user.profileImage) && googleImageFailed ? (
-                    <img 
-                      src={defaultAvatar} 
-                      alt="Profile" 
-                      className="profile-avatar"
-                      key="nav-profile-fallback"
-                    />
-                  ) : (
-                    <img 
-                      src={user.profileImage 
-                        ? getSafeProfileImageUrl(
-                            user.profileImage.includes('http') 
-                              ? user.profileImage
-                              : `http://localhost:8000${user.profileImage}`,
-                            defaultAvatar
-                          )
-                        : defaultAvatar} 
-                      alt="Profile" 
-                      className="profile-avatar"
-                      key="nav-profile-img"
-                      crossOrigin="anonymous"
-                      onError={(e) => {
-                        console.log("Using default avatar due to image load failure");
-                        e.target.onerror = null;
-                        e.target.src = defaultAvatar;
-                        
-                        // Mark Google images as failed to avoid future attempts
-                        if (user.profileImage && isGoogleProfileImage(user.profileImage)) {
-                          console.log("Google image failed to load - using fallback for future renders");
-                          setGoogleImageFailed(true);
-                        }
-                      }}
-                    />
-                  )}
+                  <img 
+                    src={user.profileImage 
+                      ? getProfileImageUrl(user.profileImage)
+                      : defaultAvatar} 
+                    alt="Profile" 
+                    className="profile-avatar"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = defaultAvatar;
+                      if (user.profileImage && isGoogleProfileImage(user.profileImage)) {
+                        setGoogleImageFailed(true);
+                      }
+                    }}
+                  />
                 </button>
+
                 <button 
                   className="profile-dropdown-toggle"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDropdown(!showDropdown);
-                  }}
+                  onClick={() => setShowDropdown(!showDropdown)}
                 >
                   <i className="dropdown-icon">▼</i>
                 </button>
+
                 {showDropdown && (
                   <div className="profile-dropdown">
                     <div className="dropdown-header">
@@ -402,55 +245,58 @@ const Navbar = () => {
                       <p className="user-role">{user.role}</p>
                     </div>
                     <div className="dropdown-items">
-                      <Link to="/profile" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/profile" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/profile');
                       }}>
-                        My Profile
+                        <FaUser className="dropdown-icon" /> My Profile
                       </Link>
-                      <Link to="/my-listings" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/my-listings" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/my-listings');
                       }}>
-                        My Properties
+                        <FaBuilding className="dropdown-icon" /> My Properties
                       </Link>
-                      <Link to="/wishlist" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/wishlist" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/wishlist');
                       }}>
+                        <svg className="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
                         My Wishlist
                       </Link>
-                      <Link to="/notifications" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/notifications" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/notifications');
                       }}>
+                        <svg className="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
                         Notifications
                       </Link>
-                      <Link to="/chats" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/chats" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/chats');
                       }}>
-                        Messages
+                        <FaComments className="dropdown-icon" /> Messages
                       </Link>
-                      <Link to="/settings" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/settings" onClick={(e) => {
+                        e.preventDefault();
                         handleNavClick('/settings');
                       }}>
+                        <svg className="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
                         Settings
                       </Link>
-                      <Link to="/logout" onClick={(e) => { 
-                        e.preventDefault(); 
-                        setShowDropdown(false);
+                      <Link to="/logout" onClick={(e) => {
+                        e.preventDefault();
                         logout();
                         navigate('/');
                       }}>
-                        Logout
+                        <FaSignOutAlt className="dropdown-icon" /> Logout
                       </Link>
                     </div>
                   </div>
@@ -461,26 +307,21 @@ const Navbar = () => {
             <>
               {!isAuthPage ? (
                 <>
-                  <button className="btn btn-login" onClick={() => navigate('/login')}>
+                  <button className="btn btn-login" onClick={() => handleNavClick('/login')}>
                     Login
                   </button>
-                  <Link to="/register">
-                    <button className="btn btn-signup">Sign Up</button>
-                  </Link>
+                  <button className="btn btn-signup" onClick={() => handleNavClick('/register')}>
+                    Sign Up
+                  </button>
                 </>
               ) : (
-                <Link 
-                  to={location.pathname === '/login' ? '/register' : '/login'} 
-                  onClick={(e) => { 
-                    e.preventDefault(); 
-                    navigate(location.pathname === '/login' ? '/register' : '/login'); 
-                  }}
+                <button 
+                  className={location.pathname === '/login' ? "btn btn-signup" : "btn btn-login"}
+                  onClick={() => handleNavClick(location.pathname === '/login' ? '/register' : '/login')}
                 >
-                  <button className={location.pathname === '/login' ? "btn btn-signup" : "btn btn-login"}>
-                    {location.pathname === '/login' ? 'Sign Up' : 'Login'}
-                    <TiLocationArrow className="ml-1 inline" />
-                  </button>
-                </Link>
+                  {location.pathname === '/login' ? 'Sign Up' : 'Login'}
+                  <TiLocationArrow className="ml-1 inline" />
+                </button>
               )}
             </>
           )}

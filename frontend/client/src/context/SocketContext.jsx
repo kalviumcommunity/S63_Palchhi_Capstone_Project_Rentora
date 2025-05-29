@@ -1,57 +1,50 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from './AuthContext';
 
 const SocketContext = createContext();
 
-export const useSocket = () => useContext(SocketContext);
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (!context) {
+    throw new Error('useSocket must be used within a SocketProvider');
+  }
+  return context;
+};
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
- 
-    if (user && token) {
-      
-      const socketInstance = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
-        auth: {
-          token
-        }
-      });
+    const socketInstance = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
+      withCredentials: true,
+      transports: ['websocket'],
+      autoConnect: true
+    });
 
-      
-      socketInstance.on('connect', () => {
-        console.log('Socket connected');
-        setConnected(true);
-      });
+    socketInstance.on('connect', () => {
+      console.log('Socket connected');
+      setConnected(true);
+    });
 
-      socketInstance.on('disconnect', () => {
-        console.log('Socket disconnected');
-        setConnected(false);
-      });
+    socketInstance.on('disconnect', () => {
+      console.log('Socket disconnected');
+      setConnected(false);
+    });
 
-      socketInstance.on('connect_error', (error) => {
-        console.error('Socket connection error:', error.message);
-        setConnected(false);
-      });
+    socketInstance.on('error', (error) => {
+      console.error('Socket error:', error);
+    });
 
-      
-      setSocket(socketInstance);
-
-      
-      return () => {
-        socketInstance.disconnect();
-      };
-    }
+    setSocket(socketInstance);
 
     return () => {
-    
+      socketInstance.disconnect();
     };
-  }, [user, token]);
+  }, []);
 
-  
   const value = {
     socket,
     connected,
@@ -66,20 +59,16 @@ export const SocketProvider = ({ children }) => {
       }
     },
     sendMessage: (chatId, content) => {
-      if (socket && connected) {
-        
+      if (socket && connected && user) {
         const messageData = {
           chatId,
           content,
           timestamp: new Date(),
-          sender: user.id,
+          sender: user._id,
           read: false
         };
         
-        
         socket.emit('send_message', { chatId, content });
-        
-  
         socket.emit('receive_message', {
           chatId,
           message: messageData

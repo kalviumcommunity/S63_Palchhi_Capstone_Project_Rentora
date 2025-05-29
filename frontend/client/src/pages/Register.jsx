@@ -5,7 +5,6 @@ const signup = "/signup.png";
 import axiosInstance from "../utils/axiosConfig";
 import { useAuth } from "../context/AuthContext"; 
 import Navbar from "../components/common/Navbar";
-import Footer from "../components/common/Footer";
 
 const Register = () => {
   const [form, setForm] = React.useState({
@@ -174,7 +173,6 @@ const Register = () => {
         </div>
       </div>
     </div>
-    <Footer />
     </>
   );
 };

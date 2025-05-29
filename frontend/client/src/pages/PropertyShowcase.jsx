@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaShare, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import Loader from '../components/common/Loader';
 import axiosInstance from '../utils/axiosConfig';
 import { toast } from 'react-toastify';
@@ -128,7 +127,6 @@ const PropertyShowcase = () => {
         <div className="loader-container">
           <Loader />
         </div>
-        <Footer />
       </div>
     );
   }
@@ -142,7 +140,6 @@ const PropertyShowcase = () => {
           <p>The property you're looking for doesn't exist or has been removed.</p>
           <Link to="/" className="btn btn-primary">Back to Home</Link>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -428,7 +425,6 @@ const PropertyShowcase = () => {
           </div>
         )}
       </div>
-      <Footer />
     </div>
   );
 };

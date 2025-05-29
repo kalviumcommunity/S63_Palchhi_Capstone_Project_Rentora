@@ -97,14 +97,17 @@ const PropertiesPage = () => {
   const fetchProperties = async (currentFilters, page = 1) => {
     setLoading(true);
     try {
-    
       const apiFilters = { ...currentFilters, page };
-      
       const response = await getListings(apiFilters);
       
       if (response.success) {
-        setProperties(response.data);
-        setPagination(response.pagination);
+        setProperties(response.listings);
+        setPagination({
+          total: response.total,
+          page: response.currentPage,
+          limit: 10,
+          pages: response.totalPages
+        });
       } else {
         setProperties([]);
         setPagination({
@@ -117,6 +120,12 @@ const PropertiesPage = () => {
     } catch (error) {
       console.error('Error fetching properties:', error);
       setProperties([]);
+      setPagination({
+        total: 0,
+        page: 1,
+        limit: 10,
+        pages: 1
+      });
     } finally {
       setLoading(false);
     }
@@ -350,7 +359,7 @@ const PropertiesPage = () => {
             </div>
           ) : (
             <>
-              {properties.length > 0 ? (
+              {Array.isArray(properties) && properties.length > 0 ? (
                 <div className="properties-grid">
                   {properties.map((property, index) => (
                     <div 
