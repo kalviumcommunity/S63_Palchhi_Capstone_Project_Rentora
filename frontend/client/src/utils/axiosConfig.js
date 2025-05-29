@@ -83,20 +83,24 @@ axiosInstance.interceptors.response.use(
       if (originalRequest._retryCount < 3) {
         originalRequest._retryCount++;
         
+        // Get retry delay from headers or use exponential backoff
         let retryAfter = parseInt(error.response.headers['retry-after']) || 0;
         
         if (!retryAfter) {
+          // Exponential backoff with jitter
           const baseDelay = Math.pow(2, originalRequest._retryCount);
           const jitter = Math.random() * 0.5;
           retryAfter = baseDelay + jitter;
         }
         
-        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-        
-        if (originalRequest.url.includes('/notifications')) {
+        // Add cache-busting parameter for GET requests
+        if (originalRequest.method === 'get') {
           const separator = originalRequest.url.includes('?') ? '&' : '?';
           originalRequest.url = `${originalRequest.url}${separator}_=${Date.now()}`;
         }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
         
         return axiosInstance(originalRequest);
       }

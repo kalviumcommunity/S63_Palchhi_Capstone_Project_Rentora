@@ -75,7 +75,7 @@ export const getListingReviews = async (listingId, page = 1, limit = 10) => {
   }
 };
 
-export const getUserReviews = async (userId, page = 1, limit = 10) => {
+export const getUserReviews = async (page = 1, limit = 10) => {
   try {
     const response = await axiosInstance.get(`/reviews/user?page=${page}&limit=${limit}`);
     return {

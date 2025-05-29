@@ -15,6 +15,7 @@ import NotificationsDropdown from "../notifications/NotificationsDropdown";
 import SearchBar from "./SearchBar";
 import { getUnreadCount } from "../../api/notificationApi";
 import { isGoogleProfileImage, getSafeProfileImageUrl } from "../../utils/imageUtils";
+import MessageCounter from "../chat/MessageCounter";
 
 // Default avatar as a data URL
 const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e5e7eb'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
@@ -206,6 +207,7 @@ const Navbar = () => {
                 handleNavClick('/chats');
               }}>
                 <FaComments />
+                <MessageCounter />
               </Link>
 
               <NotificationsDropdown />
@@ -281,9 +283,9 @@ const Navbar = () => {
                       }}>
                         <FaComments className="dropdown-icon" /> Messages
                       </Link>
-                      <Link to="/settings" onClick={(e) => {
+                      <Link to="/profile?tab=settings" onClick={(e) => {
                         e.preventDefault();
-                        handleNavClick('/settings');
+                        handleNavClick('/profile?tab=settings');
                       }}>
                         <svg className="dropdown-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

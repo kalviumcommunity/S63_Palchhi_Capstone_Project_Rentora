@@ -206,21 +206,21 @@ const SearchBar = () => {
             <div className="searching-indicator">Searching...</div>
           ) : (
             <>
-              {searchResults.length > 0 ? (
+              {Array.isArray(searchResults) && searchResults.length > 0 ? (
                 <div className="search-results-list">
                   {searchResults.map(property => (
                     <div 
-                      key={property._id} 
+                      key={property?._id || Math.random()} 
                       className="search-result-item"
-                      onClick={() => handleResultClick(property._id)}
+                      onClick={() => property?._id && handleResultClick(property._id)}
                     >
                       <div className="result-image">
-                        {property.images && property.images.length > 0 ? (
+                        {property?.images && Array.isArray(property.images) && property.images.length > 0 ? (
                           <img 
-                            src={property.images[0].includes('http') 
+                            src={property.images[0]?.includes('http') 
                               ? property.images[0] 
                               : `http://localhost:8000${property.images[0]}`} 
-                            alt={property.title}
+                            alt={property?.title || 'Property'}
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = '/default-property.png';
@@ -231,11 +231,11 @@ const SearchBar = () => {
                         )}
                       </div>
                       <div className="result-details">
-                        <h4>{property.title}</h4>
+                        <h4>{property?.title || 'Untitled Property'}</h4>
                         <p className="result-location">
-                          <FaMapMarkerAlt /> {property.location.city}, {property.location.state}
+                          <FaMapMarkerAlt /> {property?.location?.city || 'N/A'}, {property?.location?.state || 'N/A'}
                         </p>
-                        <p className="result-price">₹{property.price.toLocaleString()}</p>
+                        <p className="result-price">₹{property?.price?.toLocaleString() || '0'}</p>
                       </div>
                     </div>
                   ))}
@@ -249,7 +249,7 @@ const SearchBar = () => {
                   </div>
                 </div>
               ) : (
-                searchTerm.length > 2 ? (
+                searchTerm && searchTerm.length > 2 ? (
                   <div className="no-results">
                     <p>No properties found matching "{searchTerm}"</p>
                     <div className="suggested-tags">

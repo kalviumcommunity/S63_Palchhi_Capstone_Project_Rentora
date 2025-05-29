@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaEdit, FaTrash, FaPlus, FaTimes, FaCamera, FaVideo } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import Loader from '../components/common/Loader';
 import axiosInstance from '../utils/axiosConfig';
 import { toast } from 'react-toastify';
@@ -969,7 +968,6 @@ const MyListings = () => {
           </div>
         )}
       </div>
-      <Footer />
     </>
   );
 };

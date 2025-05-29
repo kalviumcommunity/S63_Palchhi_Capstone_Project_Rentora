@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadProfileImage, updateUserProfile, deleteListing, deleteAccount, updateNotificationPreferences } from '../api/userApi';
 import { getWishlist, removeFromWishlist } from '../api/wishlistApi';
+import { getUserReviews } from '../api/reviewApi';
 import { FaCamera, FaUser, FaEdit, FaTrash, FaStar } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
 import Loader from '../components/common/Loader';
@@ -12,6 +13,7 @@ import { isGoogleProfileImage, DEFAULT_AVATAR_SVG, getSafeProfileImageUrl } from
 const ProfilePage = () => {
   const { user, updateProfile, refreshUserData, setUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -39,6 +41,9 @@ const ProfilePage = () => {
 
   const [wishlistItems, setWishlistItems] = useState([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -122,7 +127,7 @@ const ProfilePage = () => {
           setWishlistLoading(true);
           const response = await getWishlist();
           if (response.success) {
-            setWishlistItems(response.data);
+            setWishlistItems(response.data.listings || []);
           } else {
             setMessage({ type: 'error', text: response.message || 'Failed to load wishlist' });
           }
@@ -139,6 +144,39 @@ const ProfilePage = () => {
       fetchWishlist();
     }
   }, [user, activeTab]);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (user) {
+        try {
+          setReviewsLoading(true);
+          const response = await getUserReviews();
+          if (response.success) {
+            setReviews(response.reviews || []);
+          } else {
+            setMessage({ type: 'error', text: response.message || 'Failed to load reviews' });
+          }
+        } catch (error) {
+          console.error('Error fetching reviews:', error);
+          setMessage({ type: 'error', text: 'An error occurred while loading reviews' });
+        } finally {
+          setReviewsLoading(false);
+        }
+      }
+    };
+
+    if (activeTab === 'reviews') {
+      fetchReviews();
+    }
+  }, [user, activeTab]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['profile', 'listings', 'wishlist', 'reviews', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
 
   if (!user) {
     navigate('/login');
@@ -444,7 +482,7 @@ const ProfilePage = () => {
   const handleRemoveFromWishlist = async (listingId) => {
     try {
       setLoading(true);
-      const response = await removeFromWishlist(user._id, listingId);
+      const response = await removeFromWishlist(listingId);
       
       if (response.success) {
         setMessage({ type: 'success', text: 'Property removed from wishlist!' });
@@ -462,6 +500,15 @@ const ProfilePage = () => {
         setMessage({ type: '', text: '' });
       }, 5000);
     }
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <FaStar
+        key={i}
+        className={i < rating ? 'text-yellow-400' : 'text-gray-300'}
+      />
+    ));
   };
 
   return (
@@ -837,9 +884,43 @@ const ProfilePage = () => {
             </div>
 
             <div className={`tab-content ${activeTab === 'reviews' ? 'active' : ''}`}>
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <p>You haven't received any reviews yet.</p>
-              </div>
+              {reviewsLoading ? (
+                <div className="loading-spinner">
+                  <Loader />
+                </div>
+              ) : reviews.length > 0 ? (
+                <div className="review-list">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="review-card">
+                      <div className="review-header">
+                        <img
+                          src={review.user.profileImage || '/default-avatar.png'}
+                          alt={review.user.name}
+                          className="review-avatar"
+                        />
+                        <div className="review-author">
+                          <h4>{review.user.name}</h4>
+                          <p>{review.listing.title}</p>
+                        </div>
+                        <div className="review-rating">
+                          {renderStars(review.rating)}
+                        </div>
+                      </div>
+                      <div className="review-content">
+                        <h3>{review.title}</h3>
+                        <p>{review.comment}</p>
+                      </div>
+                      <div className="review-date">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <p>You haven't received any reviews yet.</p>
+                </div>
+              )}
             </div>
 
             <div className={`tab-content ${activeTab === 'settings' ? 'active' : ''}`}>

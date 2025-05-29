@@ -1,7 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import ChatList from '../components/chat/ChatList';
 import ChatRoom from '../components/chat/ChatRoom';
 import '../styles/Chat.css';
@@ -20,8 +19,6 @@ const ChatPage = () => {
           <ChatList />
         )}
       </div>
-      
-      <Footer />
     </div>
   );
 };

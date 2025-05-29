@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/feedback.css';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 
 const FeedbackPage = () => {
 
@@ -353,8 +352,6 @@ const FeedbackPage = () => {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 };

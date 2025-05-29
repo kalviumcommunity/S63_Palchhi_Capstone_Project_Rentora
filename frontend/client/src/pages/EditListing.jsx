@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
 import PropertyListingForm from '../components/PropertyListingForm';
 import '../styles/PropertyListingForm.css';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 
 const EditListing = () => {
   const { id } = useParams();
@@ -46,7 +45,6 @@ const EditListing = () => {
             <p>Loading listing details...</p>
           </div>
         </div>
-        <Footer />
       </>
     );
   }
@@ -67,7 +65,6 @@ const EditListing = () => {
             </button>
           </div>
         </div>
-        <Footer />
       </>
     );
   }
@@ -79,7 +76,6 @@ const EditListing = () => {
         <h1 className="text-2xl font-bold mb-6">Edit Property Listing</h1>
         {listing && <PropertyListingForm listing={listing} />}
       </div>
-      <Footer />
     </>
   );
 };

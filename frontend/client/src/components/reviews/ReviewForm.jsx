@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FaStar } from 'react-icons/fa';
 import { createReview, updateReview } from '../../api/reviewApi';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -13,7 +14,10 @@ const ReviewForm = ({
   onCancel,
   isEditing = false
 }) => {
-  const [formData, setFormData] = useState(initialData);
+  const [rating, setRating] = useState(initialData.rating || 0);
+  const [title, setTitle] = useState(initialData.title || '');
+  const [comment, setComment] = useState(initialData.comment || '');
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const { user } = useAuth();
@@ -21,31 +25,25 @@ const ReviewForm = ({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setRating(name === 'rating' ? value : rating);
+    setTitle(name === 'title' ? value : title);
+    setComment(name === 'comment' ? value : comment);
     
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
   };
 
-  const handleRatingChange = (rating) => {
-    setFormData({ ...formData, rating });
-    
-    if (errors.rating) {
-      setErrors({ ...errors, rating: '' });
-    }
-  };
-
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+    if (!title.trim()) {
+      newErrors.title = 'Please enter a title';
     }
     
-    if (!formData.comment.trim()) {
-      newErrors.comment = 'Comment is required';
-    } else if (formData.comment.length < 10) {
+    if (!comment.trim()) {
+      newErrors.comment = 'Please enter a comment';
+    } else if (comment.length < 10) {
       newErrors.comment = 'Comment must be at least 10 characters';
     }
     
@@ -69,27 +67,36 @@ const ReviewForm = ({
     setLoading(true);
     
     try {
+      const reviewData = {
+        rating,
+        title: title.trim(),
+        comment: comment.trim()
+      };
+
+      let response;
       if (isEditing) {
-        const response = await updateReview(reviewId, formData);
+        response = await updateReview(reviewId, reviewData);
         if (response.success) {
           onReviewUpdated(response.data);
-        } else {
-          toast.error(response.message);
+          toast.success('Review updated successfully');
         }
       } else {
-        const response = await createReview(listingId, formData);
+        response = await createReview(listingId, reviewData);
         if (response.success) {
           onReviewAdded(response.data);
-        } else {
-          toast.error(response.message);
+          toast.success('Review added successfully');
         }
+      }
+
+      if (!response.success) {
+        toast.error(response.message || 'Failed to submit review');
       }
     } catch (error) {
       if (error.response?.status === 401) {
         toast.error('Please log in to write a review');
         navigate('/login');
       } else {
-        toast.error('An error occurred. Please try again.');
+        toast.error('Failed to submit review. Please try again later.');
       }
     } finally {
       setLoading(false);
@@ -102,82 +109,73 @@ const ReviewForm = ({
         {isEditing ? 'Edit Your Review' : 'Write a Review'}
       </h3>
       
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-2">Rating</label>
-          <div className="flex">
+      <form onSubmit={handleSubmit} className="review-form">
+        <div className="form-group">
+          <label className="form-label">Rating</label>
+          <div className="rating-input">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
-                onClick={() => handleRatingChange(star)}
-                className="focus:outline-none mr-1"
+                className="star-button"
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
+                onClick={() => setRating(star)}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-8 w-8 ${
-                    star <= formData.rating ? 'text-yellow-400' : 'text-gray-300'
+                <FaStar
+                  className={`star-icon ${
+                    star <= (hoveredRating || rating)
+                      ? 'text-yellow-400'
+                      : 'text-gray-300'
                   }`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
+                />
               </button>
             ))}
           </div>
+          {errors.rating && <span className="error-message">{errors.rating}</span>}
         </div>
         
-        <div className="mb-4">
-          <label htmlFor="title" className="block text-gray-700 mb-2">
-            Title
-          </label>
+        <div className="form-group">
+          <label htmlFor="title" className="form-label">Title</label>
           <input
             type="text"
             id="title"
             name="title"
-            value={formData.title}
+            value={title}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg ${
-              errors.title ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Summarize your experience"
+            className="form-input"
+            placeholder="Give your review a title"
           />
-          {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+          {errors.title && <span className="error-message">{errors.title}</span>}
         </div>
         
-        <div className="mb-4">
-          <label htmlFor="comment" className="block text-gray-700 mb-2">
-            Comment
-          </label>
+        <div className="form-group">
+          <label htmlFor="comment" className="form-label">Review</label>
           <textarea
             id="comment"
             name="comment"
-            value={formData.comment}
+            value={comment}
             onChange={handleChange}
+            className="form-textarea"
             rows="4"
-            className={`w-full px-3 py-2 border rounded-lg ${
-              errors.comment ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Share details of your experience"
+            placeholder="Share your experience"
           ></textarea>
-          {errors.comment && <p className="text-red-500 text-sm mt-1">{errors.comment}</p>}
+          {errors.comment && <span className="error-message">{errors.comment}</span>}
         </div>
         
-        <div className="flex justify-end space-x-3">
+        <div className="form-actions">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100"
+            className="review-form-btn cancel"
+            disabled={loading}
           >
             Cancel
           </button>
           <button
             type="submit"
+            className="review-form-btn submit"
             disabled={loading}
-            className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 ${
-              loading ? 'opacity-70 cursor-not-allowed' : ''
-            }`}
           >
             {loading ? 'Submitting...' : isEditing ? 'Update Review' : 'Submit Review'}
           </button>
