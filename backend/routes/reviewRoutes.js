@@ -10,19 +10,25 @@ const {
   verifyReview
 } = require('../controllers/reviewController');
 
-
-router.get('/listing/:listingId', getListingReviews);
-
-
+// All review routes should be protected
 router.use(protect);
 
+// Get reviews for a listing
+router.get('/listing/:listingId', getListingReviews);
+
+// Get reviews by current user
 router.get('/user', getUserReviews);
 
+// Create a new review
 router.post('/listing/:listingId', createReview);
+
+// Update a review
 router.put('/:reviewId', updateReview);
+
+// Delete a review
 router.delete('/:reviewId', deleteReview);
 
-
+// Verify a review (admin only)
 router.put('/:reviewId/verify', authorize('admin'), verifyReview);
 
 module.exports = router;

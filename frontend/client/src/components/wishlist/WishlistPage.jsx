@@ -31,12 +31,23 @@ const WishlistPage = () => {
   };
 
   const handleRemove = async (listingId) => {
-    const response = await removeFromWishlist(listingId);
-    if (response.success) {
-      toast.success('Removed from wishlist');
-      fetchWishlist();
-    } else {
-      toast.error(response.message);
+    try {
+      setLoading(true);
+      const response = await removeFromWishlist(listingId);
+      if (response.success) {
+        toast.success('Removed from wishlist');
+        setWishlist(prevWishlist => ({
+          ...prevWishlist,
+          listings: prevWishlist.listings.filter(item => item._id !== listingId)
+        }));
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      toast.error('Failed to remove from wishlist');
+    } finally {
+      setLoading(false);
     }
   };
 

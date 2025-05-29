@@ -6,7 +6,6 @@ import '../styles/ShuffleHero.css';
 import '../styles/SmoothScrollProperties.css';
 
 import Navbar from "../components/common/Navbar";
-import Footer from "../components/common/Footer";
 import ShuffleHero from "../components/common/ShuffleHero";
 import ParallaxProperties from "../components/common/ParallaxProperties";
 

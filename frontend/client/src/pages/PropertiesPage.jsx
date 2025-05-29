@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaFilter, FaSort, FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import Loader from '../components/common/Loader';
 import SearchBar from '../components/common/SearchBar';
 import AdvancedSearch from '../components/properties/AdvancedSearch';
@@ -467,8 +466,6 @@ const PropertiesPage = () => {
           )}
         </div>
       </div>
-      
-      <Footer />
     </div>
   );
 };

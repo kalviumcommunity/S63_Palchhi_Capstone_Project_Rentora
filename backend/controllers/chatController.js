@@ -70,7 +70,7 @@ exports.getUserChats = async (req, res) => {
 // Get a single chat by ID
 exports.getChatById = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
     const chatId = req.params.id;
     
     // Find the chat and verify the user is a participant
@@ -89,12 +89,13 @@ exports.getChatById = async (req, res) => {
       });
     }
     
-    // Get messages for this chat
+    // Get messages for this chat with proper sorting
     const messages = await Message.find({ chat: chatId })
       .sort({ createdAt: 1 })
-      .select('sender content createdAt read');
+      .select('sender content createdAt read')
+      .lean();
 
-    // Process messages
+    // Process messages to ensure proper format
     const processedMessages = messages.map(message => ({
       _id: message._id,
       sender: message.sender.toString(),
@@ -103,7 +104,7 @@ exports.getChatById = async (req, res) => {
       read: message.read
     }));
 
-    // Mark messages as read
+    // Mark messages as read in a separate operation
     await Message.updateMany(
       {
         chat: chatId,
@@ -111,6 +112,11 @@ exports.getChatById = async (req, res) => {
         read: false
       },
       { read: true }
+    );
+
+    // Get the other participant
+    const otherParticipant = chat.participants.find(
+      participant => participant._id.toString() !== userId.toString()
     );
     
     res.status(200).json({
@@ -120,6 +126,7 @@ exports.getChatById = async (req, res) => {
         participants: chat.participants,
         listing: chat.listing,
         messages: processedMessages,
+        otherParticipant,
         createdAt: chat.createdAt,
         updatedAt: chat.updatedAt
       }
@@ -245,86 +252,63 @@ exports.createChat = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    console.log('Send message request received:', req.body);
-    const { chatId, content } = req.body;
-    const senderId = req.user.id;
-    
-    console.log('Processing message from user:', senderId);
-    
-    if (!content || content.trim() === '') {
-      return res.status(400).json({
-        success: false,
-        message: 'Message content cannot be empty'
-      });
-    }
-    
-    // Find the chat and verify the user is a participant
-    const chat = await Chat.findOne({ 
-      _id: chatId, 
-      participants: senderId,
-      isActive: true
-    });
-    
+    const { chatId } = req.params;
+    const { content } = req.body;
+    const senderId = req.user._id;
+
+    // Find the chat and populate necessary fields
+    const chat = await Chat.findById(chatId)
+      .populate('listing', 'title owner')
+      .populate('participants', 'name');
+
     if (!chat) {
-      console.log('Chat not found or user not a participant:', chatId);
       return res.status(404).json({
         success: false,
-        message: 'Chat not found or you do not have access'
+        message: 'Chat not found'
       });
     }
-    
-    console.log('Chat found:', chat._id);
-    console.log('Chat participants:', chat.participants);
-    
-    // Create new message
+
+    // Create the new message
     const newMessage = new Message({
       chat: chatId,
       sender: senderId,
-      content: content.trim()
+      content
     });
-    
+
     await newMessage.save();
-    console.log('New message saved:', newMessage._id);
-    
-    // Update chat's updatedAt timestamp
-    chat.updatedAt = Date.now();
+
+    // Update chat's last message
+    chat.lastMessage = newMessage._id;
     await chat.save();
-    console.log('Chat updated');
-    
+
     try {
       // Find the other participant to send notification
-      console.log('Finding other participant...');
       const otherParticipantId = chat.participants.find(
-        participant => participant.toString() !== senderId
+        participant => participant._id.toString() !== senderId
       );
-      
-      console.log('Other participant found:', otherParticipantId);
-      
+
       if (otherParticipantId) {
+        // Get the sender's name for the notification
+        const sender = chat.participants.find(p => p._id.toString() === senderId);
+        
         // Create a notification for the receiver
-        console.log('Creating notification for:', otherParticipantId);
         const notification = new Notification({
-          recipient: otherParticipantId,
+          recipient: otherParticipantId._id,
           sender: senderId,
           type: 'new_message',
           title: 'New Message',
-          message: `${content.length > 30 ? content.substring(0, 30) + '...' : content}`,
-          relatedListing: chat.listing,
+          message: `${sender.name}: ${content.length > 30 ? content.substring(0, 30) + '...' : content}`,
+          relatedListing: chat.listing._id,
           actionLink: `/chats/${chat._id}`
         });
-        
-        console.log('Notification created, saving...');
+
         await notification.save();
-        console.log('Notification saved successfully');
       }
     } catch (notificationError) {
-      // Log the error but don't fail the whole request
       console.error('Error creating notification:', notificationError);
-      // Continue with the response
     }
-    
+
     // Return the new message
-    console.log('Sending success response');
     res.status(201).json({
       success: true,
       data: {

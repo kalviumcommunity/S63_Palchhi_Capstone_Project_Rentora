@@ -65,32 +65,32 @@ const CenterImage = () => {
 
 const ParallaxImages = () => {
   return (
-    <div className="mx-auto max-w-5xl px-4 pt-200px">
+    <div className="mx-auto max-w-5xl px-4 pt-[250px] space-y-[1000px]">
       <ParallaxImg
         src="/propertyImage1.png"
         alt="Luxury villa with pool"
-        start={-200}
+        start={-100}
         end={200}
         className="w-1/3"
       />
       <ParallaxImg
         src="/propertyImage2.png"
         alt="Modern apartment interior"
-        start={200}
-        end={-250}
+        start={300}
+        end={-350}
         className="mx-auto w-2/3"
       />
       <ParallaxImg
         src="/PropertyImage3.png"
         alt="Beachfront property"
-        start={-200}
+        start={-100}
         end={200}
         className="ml-auto w-1/3"
       />
       <ParallaxImg
         src="/rentalHomeImage.png"
         alt="Penthouse with city view"
-        start={0}
+        start={100}
         end={-500}
         className="ml-24 w-5/12"
       />

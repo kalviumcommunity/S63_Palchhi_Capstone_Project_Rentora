@@ -21,7 +21,8 @@ export const removeFromWishlist = async (listingId) => {
     const response = await axiosInstance.delete(`/wishlist/remove/${listingId}`);
     return {
       success: true,
-      data: response.data.data
+      data: response.data.data,
+      message: response.data.message
     };
   } catch (error) {
     console.error('Error removing from wishlist:', error);

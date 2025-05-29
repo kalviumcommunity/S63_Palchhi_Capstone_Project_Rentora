@@ -2,7 +2,7 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const getUnreadCount = async () => {
   try {
-    const response = await axiosInstance.get('/api/notifications/unread-count');
+    const response = await axiosInstance.get('/notifications/unread-count');
     return {
       success: true,
       count: response.data.count
@@ -16,84 +16,62 @@ export const getUnreadCount = async () => {
   }
 };
 
-export const getUserNotifications = async (page = 1, limit = 10) => {
+export const getUserNotifications = async (page = 1, limit = 10, unreadOnly = false, type = undefined) => {
   try {
-    const response = await axiosInstance.get(`/api/notifications/user?page=${page}&limit=${limit}`);
-    return {
-      success: true,
-      notifications: response.data.notifications,
-      total: response.data.total,
-      unreadCount: response.data.unreadCount
-    };
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      unreadOnly: unreadOnly.toString()
+    });
+
+    if (type) {
+      params.append('type', type);
+    }
+
+    const response = await axiosInstance.get(`/notifications?${params.toString()}`);
+    return response.data;
   } catch (error) {
-    console.error('Error fetching user notifications:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to fetch user notifications'
-    };
+    console.error('Error fetching notifications:', error);
+    throw error;
   }
 };
 
-export const getNotifications = async (page = 1, limit = 10) => {
+export const getNotifications = async () => {
   try {
-    const response = await axiosInstance.get(`/api/notifications?page=${page}&limit=${limit}`);
-    return {
-      success: true,
-      notifications: response.data.notifications,
-      total: response.data.total
-    };
+    const response = await axiosInstance.get('/api/notifications');
+    return response.data.data || [];
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to fetch notifications'
-    };
+    return [];
   }
 };
 
 export const markAsRead = async (notificationId) => {
   try {
-    const response = await axiosInstance.put(`/api/notifications/${notificationId}/read`);
-    return {
-      success: true,
-      notification: response.data.notification
-    };
+    const response = await axiosInstance.put(`/notifications/${notificationId}/read`);
+    return response.data;
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to mark notification as read'
-    };
+    throw error;
   }
 };
 
 export const markAllAsRead = async () => {
   try {
-    const response = await axiosInstance.put('/api/notifications/mark-all-read');
-    return {
-      success: true
-    };
+    const response = await axiosInstance.put('/notifications/mark-all-read');
+    return response.data;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to mark all notifications as read'
-    };
+    throw error;
   }
 };
 
 export const deleteNotification = async (notificationId) => {
   try {
-    const response = await axiosInstance.delete(`/api/notifications/${notificationId}`);
-    return {
-      success: true,
-      message: 'Notification deleted successfully'
-    };
+    const response = await axiosInstance.delete(`/notifications/${notificationId}`);
+    return response.data;
   } catch (error) {
     console.error('Error deleting notification:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to delete notification'
-    };
+    throw error;
   }
 };

@@ -3,7 +3,6 @@ import '../styles/Contact.css';
 import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaWhatsapp, FaFacebookF, FaInstagram, FaLinkedinIn, FaTwitter, FaCheck, FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
-import Footer from '../components/common/Footer';
 import { useAuth } from '../context/AuthContext';
 import axios from '../utils/axiosConfig';
 
@@ -418,8 +417,6 @@ const ContactNew = () => {
           <button onClick={() => navigate('/')}>Explore Properties</button>
         </div>
       </div>
-      
-      <Footer />
     </>
   );
 };

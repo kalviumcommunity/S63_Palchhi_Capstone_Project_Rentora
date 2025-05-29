@@ -11,6 +11,8 @@ const contactRoutes = require('./routes/contactRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const { protect } = require('./middleware/authMiddleware');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -114,10 +116,21 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  max: 500, // Increased limit to 500 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for authenticated users
+    return req.user !== undefined;
+  },
+  keyGenerator: (req) => {
+    // Use user ID as key if authenticated, otherwise use IP
+    return req.user ? req.user._id : req.ip;
+  }
 });
 
+// Apply rate limiting to all routes
 app.use('/api/', limiter);
 
 // Database connection
@@ -125,11 +138,12 @@ connectDB();
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/wishlist', protect, wishlistRoutes);
 app.use('/api', listingRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/wishlist', wishlistRoutes);
 app.use('/api', chatRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Get absolute paths for upload directories
 const projectRoot = __dirname;

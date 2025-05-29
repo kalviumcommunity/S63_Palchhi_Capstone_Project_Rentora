@@ -1,10 +1,32 @@
 const Review = require('../models/Review');
 const Listing = require('../models/Listing');
+const Notification = require('../models/Notification');
+
+// Helper function to create notification
+const createNotification = async (recipient, sender, type, title, message, listingId = null) => {
+  try {
+    const notification = new Notification({
+      recipient,
+      sender,
+      type,
+      title,
+      message,
+      listing: listingId
+    });
+    await notification.save();
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
+};
 
 // Get all reviews for a listing
 exports.getListingReviews = async (req, res) => {
   try {
     const { listingId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
     
     // Validate listing exists
     const listing = await Listing.findById(listingId);
@@ -15,24 +37,34 @@ exports.getListingReviews = async (req, res) => {
       });
     }
     
-    // Get reviews for the listing
+    // Get total count of reviews
+    const totalReviews = await Review.countDocuments({ listing: listingId });
+    
+    // Get reviews for the listing with pagination
     const reviews = await Review.find({ listing: listingId })
       .populate('user', 'name profileImage')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
     // Calculate average rating
     let averageRating = 0;
-    if (reviews.length > 0) {
-      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-      averageRating = totalRating / reviews.length;
+    if (totalReviews > 0) {
+      const totalRating = await Review.aggregate([
+        { $match: { listing: listing._id } },
+        { $group: { _id: null, total: { $sum: '$rating' } } }
+      ]);
+      averageRating = totalRating[0]?.total / totalReviews || 0;
     }
     
     res.status(200).json({
       success: true,
       data: {
         reviews,
-        count: reviews.length,
-        averageRating
+        count: totalReviews,
+        averageRating,
+        currentPage: page,
+        totalPages: Math.ceil(totalReviews / limit)
       }
     });
   } catch (error) {
@@ -88,6 +120,18 @@ exports.createReview = async (req, res) => {
     
     // Populate user data
     await review.populate('user', 'name profileImage');
+
+    // Create notification for listing owner
+    if (listing.createdBy.toString() !== req.user._id.toString()) {
+      await createNotification(
+        listing.createdBy,
+        req.user._id,
+        'review',
+        'New Review',
+        `${req.user.name} has reviewed your listing "${listing.title}"`,
+        listingId
+      );
+    }
     
     res.status(201).json({
       success: true,
@@ -127,6 +171,9 @@ exports.updateReview = async (req, res) => {
         message: 'Not authorized to update this review'
       });
     }
+
+    // Get listing for notification
+    const listing = await Listing.findById(review.listing);
     
     // Update review
     review.rating = rating || review.rating;
@@ -137,6 +184,18 @@ exports.updateReview = async (req, res) => {
     
     // Populate user data
     await review.populate('user', 'name profileImage');
+
+    // Create notification for listing owner
+    if (listing && listing.createdBy.toString() !== req.user._id.toString()) {
+      await createNotification(
+        listing.createdBy,
+        req.user._id,
+        'review_update',
+        'Review Updated',
+        `${req.user.name} has updated their review for "${listing.title}"`,
+        listing._id
+      );
+    }
     
     res.status(200).json({
       success: true,
@@ -175,8 +234,23 @@ exports.deleteReview = async (req, res) => {
         message: 'Not authorized to delete this review'
       });
     }
+
+    // Get listing for notification
+    const listing = await Listing.findById(review.listing);
     
     await Review.findByIdAndDelete(reviewId);
+
+    // Create notification for listing owner
+    if (listing && listing.createdBy.toString() !== req.user._id.toString()) {
+      await createNotification(
+        listing.createdBy,
+        req.user._id,
+        'review_delete',
+        'Review Deleted',
+        `${req.user.name} has deleted their review for "${listing.title}"`,
+        listing._id
+      );
+    }
     
     res.status(200).json({
       success: true,
