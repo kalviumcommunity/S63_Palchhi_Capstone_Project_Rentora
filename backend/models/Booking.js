@@ -58,4 +58,4 @@ const bookingSchema = new mongoose.Schema(
 bookingSchema.index({ property: 1, user: 1 });
 bookingSchema.index({ status: 1, paymentStatus: 1 });
 
-module.exports = mongoose.model('Booking', bookingSchema); 
+module.exports = mongoose.model('Booking', bookingSchema);
