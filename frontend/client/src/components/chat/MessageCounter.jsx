@@ -34,16 +34,24 @@ const MessageCounter = () => {
       fetchUnreadCount();
     };
 
-    const handleChatUpdated = () => {
+    const handleChatUpdated = (data) => {
+      if (data.type === 'read_status') {
+        fetchUnreadCount();
+      }
+    };
+
+    const handleMessagesRead = () => {
       fetchUnreadCount();
     };
 
     socket.on('receive_message', handleNewMessage);
     socket.on('chat_updated', handleChatUpdated);
+    socket.on('messages_read', handleMessagesRead);
 
     return () => {
       socket.off('receive_message', handleNewMessage);
       socket.off('chat_updated', handleChatUpdated);
+      socket.off('messages_read', handleMessagesRead);
     };
   }, [socket, connected]);
 
