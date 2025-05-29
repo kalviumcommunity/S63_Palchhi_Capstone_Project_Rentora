@@ -358,6 +358,15 @@ exports.markMessagesAsRead = async (req, res) => {
       },
       { read: true }
     );
+
+    // Emit socket event for messages being read
+    const io = req.app.get('io');
+    if (io) {
+      io.to(chatId).emit('messages_read', {
+        chatId,
+        userId
+      });
+    }
     
     res.status(200).json({
       success: true,
