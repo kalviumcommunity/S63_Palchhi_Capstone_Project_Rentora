@@ -524,7 +524,10 @@ const MyListings = () => {
                   <div className="listing-actions">
                     <button 
                       className="btn btn-primary btn-sm" 
-                      onClick={() => handleEditListing(listing)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditListing(listing);
+                      }}
                     >
                       <FaEdit /> Edit
                     </button>
