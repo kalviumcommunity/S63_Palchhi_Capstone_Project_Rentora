@@ -126,23 +126,30 @@ const TokenBookingList = () => {
                   <Td>
                     <Flex align="center">
                       <Image
-                        src={booking.property.images[0]}
-                        alt={booking.property.title}
+                        src={booking.property?.images?.[0] || '/default-property.png'}
+                        alt={booking.property?.title || 'Property Image'}
                         boxSize="50px"
                         objectFit="cover"
                         borderRadius="md"
                         mr={3}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/default-property.png';
+                        }}
                       />
                       <Box>
                         <Link
                           as={RouterLink}
-                          to={`/properties/${booking.property._id}`}
+                          to={`/properties/${booking.property?._id}`}
                           fontWeight="medium"
                         >
-                          {booking.property.title}
+                          {booking.property?.title || 'Property Title Not Available'}
                         </Link>
                         <Text fontSize="sm" color="gray.500">
-                          {`${booking.property.location.address}, ${booking.property.location.city}, ${booking.property.location.state} ${booking.property.location.pincode}`}
+                          {booking.property?.location ? 
+                            `${booking.property.location.address}, ${booking.property.location.city}, ${booking.property.location.state} ${booking.property.location.pincode}` :
+                            'Location not available'
+                          }
                         </Text>
                       </Box>
                     </Flex>

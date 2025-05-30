@@ -9,9 +9,11 @@ import WishlistButton from '../components/wishlist/WishlistButton';
 import ReviewsList from '../components/reviews/ReviewsList';
 import ChatButton from '../components/chat/ChatButton';
 import '../styles/PropertyShowcase.css';
+import { useAuth } from '../context/AuthContext';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
+  const { user } = useAuth();
   console.log('PropertyShowcase received ID:', id);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +66,20 @@ const PropertyShowcase = () => {
       setLoading(false);
       toast.error('Invalid property ID');
     }
+
+    // Add event listener for page visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPropertyDetails();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [id]);
 
   const fetchSimilarProperties = async (currentProperty) => {
@@ -162,6 +178,13 @@ const PropertyShowcase = () => {
       if (response.data.success) {
         toast.success('Booking request sent successfully!');
         setShowBookingForm(false);
+        
+        // Refresh property data before navigating
+        const updatedPropertyResponse = await axiosInstance.get(`/listings/${id}`);
+        if (updatedPropertyResponse.data.success) {
+          setProperty(updatedPropertyResponse.data.data);
+        }
+        
         navigate('/my-bookings');
       } else {
         throw new Error(response.data.message || 'Failed to create booking');
@@ -353,11 +376,18 @@ const PropertyShowcase = () => {
                       toast.error('This property is not available for booking at the moment.');
                       return;
                     }
+                    // Check if user is trying to book their own property
+                    if (user?._id === property.createdBy?._id) {
+                      toast.error('You cannot book your own property.');
+                      return;
+                    }
                     setShowBookingForm(true);
                   }}
-                  disabled={property.status !== 'available'}
+                  disabled={property.status !== 'available' || user?._id === property.createdBy?._id}
                 >
-                  {property.status === 'available' ? 'Book Now' : 'Not Available'}
+                  {property.status === 'available' 
+                    ? (user?._id === property.createdBy?._id ? 'Cannot Book Own Property' : 'Book Now')
+                    : property.status === 'token_booked' ? 'Already Booked' : 'Not Available'}
                 </button>
               ) : (
                 <form onSubmit={handleBookingSubmit} className="booking-form">

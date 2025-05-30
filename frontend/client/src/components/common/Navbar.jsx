@@ -253,6 +253,18 @@ const Navbar = () => {
                       }}>
                         <FaUser className="dropdown-icon" /> My Profile
                       </Link>
+                      <Link to="/my-bookings" onClick={(e) => {
+                        e.preventDefault();
+                        handleNavClick('/my-bookings');
+                      }}>
+                        <FaKey className="dropdown-icon" /> My Bookings
+                      </Link>
+                      <Link to="/properties" onClick={(e) => {
+                        e.preventDefault();
+                        handleNavClick('/properties');
+                      }}>
+                        <FaBuilding className="dropdown-icon" /> Explore Properties
+                      </Link>
                       <Link to="/my-listings" onClick={(e) => {
                         e.preventDefault();
                         handleNavClick('/my-listings');
