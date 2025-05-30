@@ -195,8 +195,11 @@ exports.uploadPaymentProof = async (req, res, next) => {
       return next(new ErrorHandler('Not authorized to upload payment proof', 403));
     }
 
-    // Update payment proof
-    booking.paymentProof = req.file.path;
+    // Update payment proof with full URL path
+    const baseUrl = process.env.BASE_URL || 'http://localhost:8000';
+    const filePath = req.file.path.replace(/\\/g, '/'); // Convert Windows path to URL format
+    const relativePath = filePath.split('public')[1]; // Get path relative to public directory
+    booking.paymentProof = `${baseUrl}${relativePath}`;
     await booking.save();
 
     res.status(200).json({
