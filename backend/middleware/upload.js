@@ -13,7 +13,8 @@ const createUploadDirs = () => {
     path.join(projectRoot, 'public'),
     path.join(projectRoot, 'public', 'uploads'),
     path.join(projectRoot, 'public', 'uploads', 'profile-images'),
-    path.join(projectRoot, 'public', 'uploads', 'images')
+    path.join(projectRoot, 'public', 'uploads', 'images'),
+    path.join(projectRoot, 'public', 'uploads', 'payment_proofs')
   ];
 
   dirs.forEach(dir => {
@@ -36,7 +37,8 @@ createUploadDirs();
 // Configure storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/payment_proofs/');
+    const uploadPath = path.join(projectRoot, 'public', 'uploads', 'payment_proofs');
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
