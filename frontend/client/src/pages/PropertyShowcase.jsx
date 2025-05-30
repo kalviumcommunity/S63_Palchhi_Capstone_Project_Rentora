@@ -8,7 +8,6 @@ import { toast } from 'react-toastify';
 import WishlistButton from '../components/wishlist/WishlistButton';
 import ReviewsList from '../components/reviews/ReviewsList';
 import ChatButton from '../components/chat/ChatButton';
-import BookingForm from '../components/booking/BookingForm';
 import '../styles/PropertyShowcase.css';
 
 const PropertyShowcase = () => {
@@ -347,7 +346,63 @@ const PropertyShowcase = () => {
           </div>
 
           <div className="property-sidebar">
-            <BookingForm property={property} />
+            <div className="property-contact-card">
+              <h3>Contact Owner</h3>
+              {property.createdBy?.preferences?.showContactInfo ? (
+                <div className="owner-contact-info">
+                  <div className="contact-info-item">
+                    <label>Owner Name</label>
+                    <p>{property.createdBy.name}</p>
+                  </div>
+                  <div className="contact-info-item">
+                    <label>Email</label>
+                    <p>{property.createdBy.email}</p>
+                  </div>
+                  {property.createdBy.phone && (
+                    <div className="contact-info-item">
+                      <label>Phone</label>
+                      <p>{property.createdBy.phone}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="contact-form">
+                  <div className="form-group">
+                    <label>Your Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Enter your full name" 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Your Email</label>
+                    <input 
+                      type="email" 
+                      className="form-control" 
+                      placeholder="Enter your email address" 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Your Phone</label>
+                    <input 
+                      type="tel" 
+                      className="form-control" 
+                      placeholder="Enter your phone number" 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Message</label>
+                    <textarea 
+                      className="form-control" 
+                      rows="4" 
+                      placeholder={`I'm interested in this ${property.bedrooms} bedroom property at ${property.location.address}. Please contact me with more information.`}
+                    ></textarea>
+                  </div>
+                  <button className="contact-submit">Send Message</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
