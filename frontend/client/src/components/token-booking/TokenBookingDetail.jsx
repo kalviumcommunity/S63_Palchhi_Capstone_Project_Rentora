@@ -29,6 +29,7 @@ import {
   Alert,
   AlertIcon
 } from '@chakra-ui/react';
+import { FaFilePdf } from 'react-icons/fa';
 
 const TokenBookingDetail = () => {
   const { id } = useParams();
@@ -244,6 +245,44 @@ const TokenBookingDetail = () => {
             <Text>{booking.notes}</Text>
           </Box>
         )}
+
+        <Divider />
+
+        <Box>
+          <Heading size="md" mb={4}>
+            Payment Proof
+          </Heading>
+          {booking.paymentProof ? (
+            <VStack align="start" spacing={3}>
+              <Text fontWeight="bold">Payment Proof Uploaded:</Text>
+              <Box>
+                {booking.paymentProof.endsWith('.pdf') ? (
+                  <Button
+                    as="a"
+                    href={booking.paymentProof}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    colorScheme="blue"
+                    leftIcon={<FaFilePdf />}
+                  >
+                    View PDF
+                  </Button>
+                ) : (
+                  <Image
+                    src={booking.paymentProof}
+                    alt="Payment Proof"
+                    maxW="400px"
+                    borderRadius="md"
+                    cursor="pointer"
+                    onClick={() => window.open(booking.paymentProof, '_blank')}
+                  />
+                )}
+              </Box>
+            </VStack>
+          ) : (
+            <Text color="gray.500">No payment proof uploaded yet</Text>
+          )}
+        </Box>
 
         <HStack spacing={4} justify="flex-end">
           {booking.status === 'pending' && (
