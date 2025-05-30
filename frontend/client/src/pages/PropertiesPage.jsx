@@ -234,7 +234,7 @@ const PropertiesPage = () => {
 
   
   const navigateToProperty = (id) => {
-    navigate(`/property/${id}`);
+    navigate(`/properties/${id}`);
   };
 
   return (

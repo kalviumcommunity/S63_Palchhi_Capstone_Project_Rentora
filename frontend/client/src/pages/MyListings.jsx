@@ -474,9 +474,13 @@ const MyListings = () => {
           </div>
         ) : listings.length > 0 ? (
           <div className="listings-grid">
-            {listings.map(listing => (
-              <div key={listing._id} className="listing-card">
-                <div className="listing-image-container" onClick={() => navigate(`/property/${listing._id}`)}>
+            {listings.map((listing) => (
+              <div 
+                key={listing._id} 
+                className="listing-item"
+                onClick={() => navigate(`/properties/${listing._id}`)}
+              >
+                <div className="listing-image-container">
                   <img 
                     src={listing.images && listing.images.length > 0 && listing.images[0]
                       ? (typeof listing.images[0] === 'string' && listing.images[0].startsWith('http') 

@@ -176,7 +176,7 @@ const WishlistPage = () => {
                 
                 <div className="property-actions">
                   <Link
-                    to={`/property/${listing._id}`}
+                    to={`/properties/${listing._id}`}
                     className="block text-center bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg shadow-md transition duration-300"
                   >
                     View Details

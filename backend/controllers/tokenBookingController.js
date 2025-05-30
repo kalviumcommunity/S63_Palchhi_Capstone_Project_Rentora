@@ -41,7 +41,7 @@ exports.createTokenBooking = async (req, res, next) => {
     const tokenBooking = await TokenBooking.create({
       property: propertyId,
       buyer: req.user._id,
-      seller: property.owner,
+      seller: property.createdBy,
       tokenAmount,
       totalPropertyValue: property.price,
       bookingType,

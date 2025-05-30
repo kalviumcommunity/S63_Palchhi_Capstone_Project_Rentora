@@ -70,9 +70,10 @@ const listingSchema = new mongoose.Schema(
       elevator: { type: Boolean, default: false },
       wheelchairAccess: { type: Boolean, default: false }
     },
-    isAvailable: {
-      type: Boolean,
-      default: true,
+    status: {
+      type: String,
+      enum: ['available', 'token_booked', 'sold', 'rented', 'unavailable'],
+      default: 'available'
     },
     isPremium: {
       type: Boolean,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaShare, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { FaBed, FaBath, FaRulerCombined, FaMapMarkerAlt, FaShare, FaArrowLeft, FaArrowRight, FaCalendarAlt } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
 import Loader from '../components/common/Loader';
 import axiosInstance from '../utils/axiosConfig';
@@ -12,32 +12,47 @@ import '../styles/PropertyShowcase.css';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
+  console.log('PropertyShowcase received ID:', id);
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [similarProperties, setSimilarProperties] = useState([]);
   const [activeTab, setActiveTab] = useState('photos');
+  const [showBookingForm, setShowBookingForm] = useState(false);
+  const [bookingData, setBookingData] = useState({
+    message: '',
+    tokenAmount: 0,
+    bookingType: 'rent',
+    duration: 12,
+    paymentMethod: 'bank_transfer'
+  });
+  const navigate = useNavigate();
 
- 
   useEffect(() => {
     const fetchPropertyDetails = async () => {
       try {
         setLoading(true);
+        if (!id) {
+          throw new Error('Property ID is required');
+        }
+        
+        console.log('Fetching property details for ID:', id);
         const response = await axiosInstance.get(`/listings/${id}`);
         
         if (response.data.success) {
           const propertyData = response.data.data;
           console.log('Property data:', propertyData);
           setProperty(propertyData);
-      
           fetchSimilarProperties(propertyData);
         } else {
-          toast.error('Failed to load property details');
+          throw new Error(response.data.message || 'Failed to load property details');
         }
       } catch (error) {
         console.error('Error fetching property details:', error);
-        toast.error('Error loading property details. Please try again.');
+        const errorMessage = error.response?.data?.message || 'Error loading property details. Please try again.';
+        toast.error(errorMessage);
+        setProperty(null);
       } finally {
         setLoading(false);
       }
@@ -45,9 +60,11 @@ const PropertyShowcase = () => {
 
     if (id) {
       fetchPropertyDetails();
+    } else {
+      setLoading(false);
+      toast.error('Invalid property ID');
     }
   }, [id]);
-
 
   const fetchSimilarProperties = async (currentProperty) => {
     try {
@@ -69,9 +86,9 @@ const PropertyShowcase = () => {
       }
     } catch (error) {
       console.error('Error fetching similar properties:', error);
+      // Don't show toast for similar properties error as it's not critical
     }
   };
-
 
   const nextImage = () => {
     if (property?.images?.length > 0) {
@@ -89,7 +106,6 @@ const PropertyShowcase = () => {
     }
   };
 
-
   const formatImageUrl = (imagePath) => {
     if (!imagePath) return '';
     
@@ -101,7 +117,6 @@ const PropertyShowcase = () => {
       return `http://localhost:8000${normalizedPath}`;
     }
   };
-
 
   const handleShare = () => {
     if (navigator.share) {
@@ -119,6 +134,44 @@ const PropertyShowcase = () => {
     }
   };
 
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Check if property is available
+      if (property.status !== 'available') {
+        toast.error('This property is not available for booking at the moment.');
+        return;
+      }
+
+      // Calculate token amount (10% of property price)
+      const tokenAmount = Math.round(property.price * 0.1);
+
+      const bookingPayload = {
+        propertyId: id,
+        tokenAmount,
+        bookingType: property.propertyType === 'rent' ? 'rent' : 'sale',
+        duration: property.propertyType === 'rent' ? 12 : undefined,
+        paymentMethod: 'bank_transfer',
+        notes: bookingData.message
+      };
+
+      console.log('Sending booking payload:', bookingPayload);
+
+      const response = await axiosInstance.post('/token-bookings', bookingPayload);
+
+      if (response.data.success) {
+        toast.success('Booking request sent successfully!');
+        setShowBookingForm(false);
+        navigate('/my-bookings');
+      } else {
+        throw new Error(response.data.message || 'Failed to create booking');
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to create booking. Please try again.';
+      toast.error(errorMessage);
+    }
+  };
 
   if (loading) {
     return (
@@ -285,6 +338,90 @@ const PropertyShowcase = () => {
               </div>
             </div>
           )}
+
+          <div className="property-booking-section">
+            <div className="booking-summary">
+              <h3>Book this Property</h3>
+              <div className="price-summary">
+                <p>Price: ₹{property.price.toLocaleString()} {property.propertyType === 'rent' ? '/month' : ''}</p>
+              </div>
+              {!showBookingForm ? (
+                <button 
+                  className="book-now-button"
+                  onClick={() => {
+                    if (property.status !== 'available') {
+                      toast.error('This property is not available for booking at the moment.');
+                      return;
+                    }
+                    setShowBookingForm(true);
+                  }}
+                  disabled={property.status !== 'available'}
+                >
+                  {property.status === 'available' ? 'Book Now' : 'Not Available'}
+                </button>
+              ) : (
+                <form onSubmit={handleBookingSubmit} className="booking-form">
+                  <div className="form-group">
+                    <label>Property Status</label>
+                    <div className="property-status-display">
+                      {property.status === 'available' ? 'Available' : 'Not Available'}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Token Amount</label>
+                    <div className="token-amount-display">
+                      ₹{Math.round(property.price * 0.1).toLocaleString()} (10% of property value)
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Booking Type</label>
+                    <div className="booking-type-display">
+                      {property.propertyType === 'rent' ? 'Rental' : 'Sale'}
+                    </div>
+                  </div>
+                  {property.propertyType === 'rent' && (
+                    <div className="form-group">
+                      <label>Duration</label>
+                      <div className="duration-display">
+                        12 months
+                      </div>
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>Payment Method</label>
+                    <div className="payment-method-display">
+                      Bank Transfer
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Message to Owner</label>
+                    <textarea
+                      value={bookingData.message}
+                      onChange={(e) => setBookingData({...bookingData, message: e.target.value})}
+                      placeholder="Add any specific requirements or questions..."
+                      rows="4"
+                    />
+                  </div>
+                  <div className="booking-form-buttons">
+                    <button 
+                      type="submit" 
+                      className="submit-booking-button"
+                      disabled={property.status !== 'available'}
+                    >
+                      Submit Booking Request
+                    </button>
+                    <button 
+                      type="button" 
+                      className="cancel-booking-button"
+                      onClick={() => setShowBookingForm(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="property-details-grid">

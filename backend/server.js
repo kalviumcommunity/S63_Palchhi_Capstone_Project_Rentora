@@ -12,6 +12,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const tokenBookingRoutes = require('./routes/tokenBookingRoutes');
 const { protect } = require('./middleware/authMiddleware');
 const path = require('path');
 const fs = require('fs');
@@ -144,6 +145,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/token-bookings', tokenBookingRoutes);
 
 // Get absolute paths for upload directories
 const projectRoot = __dirname;
