@@ -33,51 +33,28 @@ const createUploadDirs = () => {
 // Create directories on startup
 createUploadDirs();
 
+// Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Determine the upload directory based on the field name
-    let uploadDir;
-    if (file.fieldname === 'profileImage') {
-      uploadDir = path.join(projectRoot, 'public', 'uploads', 'profile-images');
-    } else {
-      uploadDir = path.join(projectRoot, 'public', 'uploads', 'images');
-    }
-    
-    // Ensure directory exists
-    try {
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        console.log(`Created upload directory: ${uploadDir}`);
-      }
-      
-      // Verify directory is writable
-      fs.accessSync(uploadDir, fs.constants.W_OK);
-      console.log(`Upload directory is writable: ${uploadDir}`);
-      
-      cb(null, uploadDir);
-    } catch (error) {
-      console.error(`Error with upload directory ${uploadDir}:`, error);
-      cb(error);
-    }
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/payment_proofs/');
   },
-  filename: (req, file, cb) => {
-    // Generate a unique filename with timestamp
-    const timestamp = Date.now();
-    const uniqueName = `profile-${timestamp}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-    console.log(`Generated filename: ${uniqueName}`);
-    cb(null, uniqueName);
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
+// File filter
 const fileFilter = (req, file, cb) => {
-  // Accept only image files
-  if (file.mimetype.startsWith('image/')) {
+  // Accept images and PDFs
+  if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'), false);
+    cb(new Error('Invalid file type. Only images and PDFs are allowed.'), false);
   }
 };
 
+// Configure upload
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
