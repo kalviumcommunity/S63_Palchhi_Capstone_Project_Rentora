@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ChakraProvider } from '@chakra-ui/react';
 import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import Register from './pages/Register';
@@ -19,15 +20,17 @@ import ChatPage from './pages/ChatPage';
 import AdminDashboard from './pages/AdminDashboard';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
-
 import WishlistPage from './components/wishlist/WishlistPage';
 import NotificationsPage from './components/notifications/NotificationsPage';
 import EditListing from './pages/EditListing';
 import { Toaster } from 'react-hot-toast';
+import TokenBookingList from './components/token-booking/TokenBookingList';
+import TokenBookingDetail from './components/token-booking/TokenBookingDetail';
+import TokenBookingForm from './components/token-booking/TokenBookingForm';
 
 function App() {
   return (
-    <>
+    <ChakraProvider>
       <Toaster position="top-right" />
       <AuthProvider>
         <BrowserRouter>
@@ -41,13 +44,12 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/logout" element={<Logout />} />
-
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/all-contacts" element={<AllContacts />} /> 
                 <Route path="/feedback" element={<FeedbackPage />} /> 
                 <Route path="/faq" element={<Faq />} /> 
-                <Route path="/property/:id" element={<PropertyShowcase />} />
                 <Route path="/properties" element={<PropertiesPage />} />
+                <Route path="/properties/:id" element={<PropertyShowcase />} />
                 
                 {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
@@ -60,6 +62,9 @@ function App() {
                   <Route path="/chats" element={<ChatPage />} />
                   <Route path="/chat/:chatId" element={<ChatPage />} />
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/my-bookings" element={<TokenBookingList />} />
+                  <Route path="/bookings/:id" element={<TokenBookingDetail />} />
+                  <Route path="/properties/:id/book" element={<TokenBookingForm />} />
                 </Route>
 
                 {/* Fallback Route */}
@@ -70,7 +75,7 @@ function App() {
           </div>
         </BrowserRouter>
       </AuthProvider>
-    </>
+    </ChakraProvider>
   );
 }
 

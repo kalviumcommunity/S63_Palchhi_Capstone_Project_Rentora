@@ -8,7 +8,7 @@ const {
   cancelTokenBooking,
   uploadPaymentProof
 } = require('../controllers/tokenBookingController');
-const { protect } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/upload');
 
 // Create a new token booking

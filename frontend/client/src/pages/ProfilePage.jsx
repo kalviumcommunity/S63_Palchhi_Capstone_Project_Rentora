@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { uploadProfileImage, updateUserProfile, deleteListing, deleteAccount, updateNotificationPreferences } from '../api/userApi';
 import { getWishlist, removeFromWishlist } from '../api/wishlistApi';
@@ -741,7 +741,7 @@ const ProfilePage = () => {
                             : '/default-property.png'} 
                           alt={listing.title} 
                           className="property-image"
-                          onClick={() => navigate(`/property/${listing._id}`)}
+                          onClick={() => navigate(`/edit-listing/${listing._id}`)}
                           onError={(e) => {
                             console.error(`Failed to load image for listing ${listing._id}:`, listing.images[0]);
                             e.target.onerror = null;
@@ -833,7 +833,7 @@ const ProfilePage = () => {
                           : '/default-property.png'} 
                         alt={item.title} 
                         className="property-image"
-                        onClick={() => navigate(`/listings/${item._id}`)}
+                        onClick={() => navigate(`/properties/${item._id}`)}
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = '/default-property.png';
@@ -852,19 +852,9 @@ const ProfilePage = () => {
                             <span>{item.squareFeet} sq.ft</span>
                           )}
                         </div>
-                        <div className="property-actions">
-                          <button 
-                            className="btn btn-primary btn-sm" 
-                            onClick={() => navigate(`/listings/${item._id}`)}
-                          >
-                            View Details
-                          </button>
-                          <button 
-                            className="btn btn-danger btn-sm" 
-                            onClick={() => handleRemoveFromWishlist(item._id)}
-                          >
-                            <FaTrash /> Remove
-                          </button>
+                        <div className="item-actions">
+                          <button onClick={() => navigate(`/properties/${item._id}`)} className="btn btn-primary btn-sm">View Details</button>
+                          <button onClick={() => handleRemoveFromWishlist(item._id)} className="btn btn-danger btn-sm">Remove</button>
                         </div>
                       </div>
                     </div>
