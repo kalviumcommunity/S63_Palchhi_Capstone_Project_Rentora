@@ -70,6 +70,11 @@ const listingSchema = new mongoose.Schema(
       elevator: { type: Boolean, default: false },
       wheelchairAccess: { type: Boolean, default: false }
     },
+    isAvailable: {
+      type: Boolean,
+      default: true,
+      required: true
+    },
     status: {
       type: String,
       enum: ['available', 'token_booked', 'sold', 'rented', 'unavailable'],
@@ -93,5 +98,15 @@ const listingSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Add a pre-save middleware to ensure isAvailable is set based on status
+listingSchema.pre('save', function(next) {
+  if (this.status === 'available') {
+    this.isAvailable = true;
+  } else {
+    this.isAvailable = false;
+  }
+  next();
+});
 
 module.exports = mongoose.model('Listing', listingSchema);

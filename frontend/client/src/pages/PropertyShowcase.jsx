@@ -372,6 +372,10 @@ const PropertyShowcase = () => {
                 <button 
                   className="book-now-button"
                   onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to book this property');
+                      return;
+                    }
                     if (property.status !== 'available') {
                       toast.error('This property is not available for booking at the moment.');
                       return;
@@ -383,11 +387,17 @@ const PropertyShowcase = () => {
                     }
                     setShowBookingForm(true);
                   }}
-                  disabled={property.status !== 'available' || user?._id === property.createdBy?._id}
+                  disabled={!user || property.status !== 'available' || user?._id === property.createdBy?._id}
                 >
-                  {property.status === 'available' 
-                    ? (user?._id === property.createdBy?._id ? 'Cannot Book Own Property' : 'Book Now')
-                    : property.status === 'token_booked' ? 'Already Booked' : 'Not Available'}
+                  {!user 
+                    ? 'Login to Book'
+                    : property.status === 'available' 
+                      ? (user?._id === property.createdBy?._id ? 'Cannot Book Own Property' : 'Book Now')
+                      : property.status === 'token_booked' 
+                        ? 'Already Booked by Another User' 
+                        : property.status === 'sold' 
+                          ? 'Property Sold' 
+                          : 'Not Available'}
                 </button>
               ) : (
                 <form onSubmit={handleBookingSubmit} className="booking-form">

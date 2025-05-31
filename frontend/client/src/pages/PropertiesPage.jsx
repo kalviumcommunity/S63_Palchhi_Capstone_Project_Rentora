@@ -6,6 +6,7 @@ import Loader from '../components/common/Loader';
 import SearchBar from '../components/common/SearchBar';
 import AdvancedSearch from '../components/properties/AdvancedSearch';
 import { getListings } from '../api/listingsApi';
+import { toast } from 'react-toastify';
 import '../styles/theme.css';
 import '../styles/PropertiesPage.css';
 import '../styles/animations.css';
@@ -26,7 +27,7 @@ const PropertiesPage = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [activePropertyType, setActivePropertyType] = React.useState('all');
   const [activeTags, setActiveTags] = React.useState([]);
-
+  const abortControllerRef = React.useRef(null);
 
   const propertyTypes = [
     { id: 'all', label: 'All Properties' },
@@ -55,59 +56,57 @@ const PropertiesPage = () => {
     { id: 'ahmedabad', label: 'Ahmedabad' }
   ];
 
-  React.useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const newFilters = {};
-    
-
-    for (const [key, value] of queryParams.entries()) {
-      newFilters[key] = value;
-    }
-    
-
-    if (newFilters.propertyType) {
-      setActivePropertyType(newFilters.propertyType);
-    } else {
-      setActivePropertyType('all');
-    }
-    
-  
-    const tags = [];
-    if (newFilters.city) {
-      tags.push({ type: 'city', value: newFilters.city });
-    }
-    if (newFilters.state) {
-      tags.push({ type: 'state', value: newFilters.state });
-    }
-    if (newFilters.buildingType) {
-      tags.push({ type: 'buildingType', value: newFilters.buildingType });
-    }
-    setActiveTags(tags);
-    
-    
-    const page = newFilters.page ? parseInt(newFilters.page) : 1;
-    
-    
-    setFilters(newFilters);
-    fetchProperties(newFilters, page);
-  }, [location.search]);
-
-  
+  // Function to fetch properties with abort controller
   const fetchProperties = async (currentFilters, page = 1) => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
     setLoading(true);
     try {
-      const apiFilters = { ...currentFilters, page };
-      const response = await getListings(apiFilters);
+      const apiFilters = { 
+        ...currentFilters, 
+        page,
+        _t: Date.now() // Prevent caching
+      };
+
+      console.log('Fetching properties with filters:', apiFilters);
+      const response = await getListings(apiFilters, abortControllerRef.current.signal);
+      console.log('API Response:', response);
       
-      if (response.success) {
-        setProperties(response.listings);
+      if (response.success && Array.isArray(response.listings)) {
+        console.log('Raw listings data:', response.listings);
+        
+        // Filter properties based on status only
+        const availableProperties = response.listings.filter(property => {
+          const isAvailable = property.status === 'available';
+          console.log(`Property ${property._id} (${property.title}):`, {
+            status: property.status,
+            willShow: isAvailable
+          });
+          return isAvailable;
+        });
+        
+        console.log('Filtered available properties:', availableProperties);
+        
+        if (availableProperties.length === 0) {
+          console.log('No available properties found');
+          toast.info('No available properties found. Please check back later.');
+        }
+        
+        setProperties(availableProperties);
         setPagination({
-          total: response.total,
+          total: availableProperties.length,
           page: response.currentPage,
           limit: 10,
-          pages: response.totalPages
+          pages: Math.ceil(availableProperties.length / 10)
         });
       } else {
+        console.log('No properties found or invalid response format');
         setProperties([]);
         setPagination({
           total: 0,
@@ -117,7 +116,12 @@ const PropertiesPage = () => {
         });
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
       console.error('Error fetching properties:', error);
+      toast.error('Failed to fetch properties. Please try again.');
       setProperties([]);
       setPagination({
         total: 0,
@@ -130,6 +134,38 @@ const PropertiesPage = () => {
     }
   };
 
+  // Effect for initial load and filter changes
+  React.useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const newFilters = {};
+    
+    for (const [key, value] of queryParams.entries()) {
+      newFilters[key] = value;
+    }
+    
+    if (newFilters.propertyType) {
+      setActivePropertyType(newFilters.propertyType);
+    } else {
+      setActivePropertyType('all');
+    }
+    
+    const tags = [];
+    if (newFilters.city) tags.push({ type: 'city', value: newFilters.city });
+    if (newFilters.state) tags.push({ type: 'state', value: newFilters.state });
+    if (newFilters.buildingType) tags.push({ type: 'buildingType', value: newFilters.buildingType });
+    
+    setActiveTags(tags);
+    const page = newFilters.page ? parseInt(newFilters.page) : 1;
+    setFilters(newFilters);
+    fetchProperties(newFilters, page);
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [location.search]);
 
   const handlePropertyTypeChange = (type) => {
     const newFilters = { ...filters };
@@ -259,12 +295,14 @@ const PropertiesPage = () => {
               ))}
             </div>
             
-            <button
-              className={`advanced-filter-toggle ${showAdvancedFilters ? 'active' : ''}`}
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <FaFilter /> {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
-            </button>
+            <div className="filter-actions">
+              <button
+                className={`advanced-filter-toggle ${showAdvancedFilters ? 'active' : ''}`}
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <FaFilter /> {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
+              </button>
+            </div>
           </div>
           
           {showAdvancedFilters && (
@@ -360,7 +398,9 @@ const PropertiesPage = () => {
             <>
               {Array.isArray(properties) && properties.length > 0 ? (
                 <div className="properties-grid">
-                  {properties.map((property, index) => (
+                  {properties
+                    .filter(property => property.isAvailable && property.status === 'available')
+                    .map((property, index) => (
                     <div 
                       key={property._id} 
                       className={`property-card fade-in shine stagger-${(index % 5) + 1}`}
