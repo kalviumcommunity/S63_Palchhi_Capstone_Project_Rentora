@@ -168,6 +168,7 @@ const SearchBar = () => {
               type="button" 
               className="clear-search-btn"
               onClick={clearSearch}
+              data-testid="clear-search-btn"
             >
               <FaTimes />
             </button>
