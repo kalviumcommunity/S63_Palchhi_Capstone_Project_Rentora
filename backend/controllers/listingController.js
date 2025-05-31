@@ -33,6 +33,14 @@ exports.createListing = async (req, res) => {
 
     const savedListing = await newListing.save();
 
+    // Clear the listings cache to ensure fresh data
+    try {
+      listingCache.flushAll();
+      console.log('Listings cache cleared after new listing creation');
+    } catch (cacheError) {
+      console.error('Error clearing cache:', cacheError);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Listing created successfully',
@@ -80,9 +88,12 @@ exports.getAllListings = async (req, res) => {
       search
     } = req.query;
 
-   
-    const filter = { isAvailable: true };
+    // Update filter to only show available properties
+    const filter = {
+      status: 'available'  // Only show properties that are available
+    };
 
+    console.log('Initial filter:', filter);
 
     if (minPrice || maxPrice) {
       filter.price = {};
@@ -159,14 +170,33 @@ exports.getAllListings = async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
     
+    console.log('Final filter:', filter);
+    
+    // First, let's check what properties exist in the database
+    const allListings = await Listing.find({});
+    console.log('All listings in database:', allListings.map(l => ({
+      id: l._id,
+      title: l.title,
+      isAvailable: l.isAvailable,
+      status: l.status
+    })));
+    
     const listings = await Listing.find(filter)
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
       .populate('createdBy', 'name email profileImage');
 
-  
+    console.log('Found available listings:', listings.length);
+    console.log('Available listings data:', listings.map(l => ({
+      id: l._id,
+      title: l.title,
+      isAvailable: l.isAvailable,
+      status: l.status
+    })));
+
     const total = await Listing.countDocuments(filter);
+    console.log('Total available count:', total);
 
     res.status(200).json({
       success: true,

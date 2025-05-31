@@ -28,6 +28,11 @@ exports.createTokenBooking = async (req, res, next) => {
       return next(new ErrorHandler('Property not found', 404));
     }
 
+    // Check if user is trying to book their own property
+    if (property.createdBy.toString() === req.user._id.toString()) {
+      return next(new ErrorHandler('You cannot book your own property', 400));
+    }
+
     // Check if property is available
     if (property.status !== 'available') {
       return next(new ErrorHandler('Property is not available for booking', 400));

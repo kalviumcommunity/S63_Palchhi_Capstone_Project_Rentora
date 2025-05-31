@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
@@ -6,6 +6,8 @@ import { MdEmail, MdPhone } from 'react-icons/md';
 import '../../styles/Footer.css';
 
 const Footer = () => {
+  const [activeLink, setActiveLink] = useState(null);
+
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -23,7 +25,8 @@ const Footer = () => {
     window.location.href = 'tel:+918000123456';
   };
 
-  const scrollToTop = () => {
+  const handleLinkClick = (path) => {
+    setActiveLink(path);
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -42,10 +45,10 @@ const Footer = () => {
         >
           <h4>Find Properties</h4>
           <ul>
-            <li onClick={scrollToTop}><Link to="/properties?propertyType=rent">Rent</Link></li>
-            <li onClick={scrollToTop}><Link to="/properties?propertyType=sale">Buy</Link></li>
-            <li onClick={scrollToTop}><Link to="/properties">Search</Link></li>
-            <li onClick={scrollToTop}><Link to="/register">List Property</Link></li>
+            <li><Link to="/properties?propertyType=rent" onClick={() => handleLinkClick('/properties?propertyType=rent')} className={activeLink === '/properties?propertyType=rent' ? 'active' : ''}>Rent</Link></li>
+            <li><Link to="/properties?propertyType=sale" onClick={() => handleLinkClick('/properties?propertyType=sale')} className={activeLink === '/properties?propertyType=sale' ? 'active' : ''}>Buy</Link></li>
+            <li><Link to="/properties" onClick={() => handleLinkClick('/properties')} className={activeLink === '/properties' ? 'active' : ''}>Search</Link></li>
+            <li><Link to="/register" onClick={() => handleLinkClick('/register')} className={activeLink === '/register' ? 'active' : ''}>List Property</Link></li>
           </ul>
         </motion.div>
         
@@ -59,10 +62,10 @@ const Footer = () => {
         >
           <h4>Company</h4>
           <ul>
-            <li onClick={scrollToTop}><Link to="/about">About Us</Link></li>
-            <li onClick={scrollToTop}><Link to="/contact">Contact Us</Link></li>
-            <li onClick={scrollToTop}><Link to="/terms">Terms & Conditions</Link></li>
-            <li onClick={scrollToTop}><Link to="/privacy">Privacy Policy</Link></li>
+            <li><Link to="/about" onClick={() => handleLinkClick('/about')} className={activeLink === '/about' ? 'active' : ''}>About Us</Link></li>
+            <li><Link to="/contact" onClick={() => handleLinkClick('/contact')} className={activeLink === '/contact' ? 'active' : ''}>Contact Us</Link></li>
+            <li><Link to="/terms" onClick={() => handleLinkClick('/terms')} className={activeLink === '/terms' ? 'active' : ''}>Terms & Conditions</Link></li>
+            <li><Link to="/privacy" onClick={() => handleLinkClick('/privacy')} className={activeLink === '/privacy' ? 'active' : ''}>Privacy Policy</Link></li>
           </ul>
         </motion.div>
         

@@ -80,6 +80,12 @@
     transform: translateX(5px);
   }
   
+  .footer-column ul li a:active,
+  .footer-column ul li a.active {
+    color: #007bff;
+    transform: translateX(5px);
+  }
+  
   .contact-column {
     flex: 1 1 250px;
   }

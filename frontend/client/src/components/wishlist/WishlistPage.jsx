@@ -13,6 +13,17 @@ const WishlistPage = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
+  const formatImageUrl = (imagePath) => {
+    if (!imagePath) return '/placeholder-property.jpg';
+    
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    } else {
+      const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+      return `http://localhost:8000${normalizedPath}`;
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchWishlist();
@@ -122,9 +133,13 @@ const WishlistPage = () => {
             >
               <div className="property-image">
                 <img
-                  src={listing.images[0] || '/placeholder-property.jpg'}
+                  src={formatImageUrl(listing.images?.[0])}
                   alt={listing.title}
                   className="w-full h-56 object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/placeholder-property.jpg';
+                  }}
                 />
                 <div className="property-badge">
                   {listing.propertyType === 'rent' ? 'For Rent' : 'For Sale'}

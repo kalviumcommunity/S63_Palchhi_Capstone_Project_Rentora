@@ -1,22 +1,39 @@
 import axiosInstance from '../utils/axiosConfig';
 
-export const getListings = async (filters = {}, page = 1, limit = 10) => {
+export const getListings = async (filters = {}, signal) => {
   try {
     const queryParams = new URLSearchParams({
-      page,
-      limit,
-      ...filters
+      ...filters,
+      _t: Date.now(), // Add timestamp to prevent caching
+      nocache: true // Add nocache parameter
     }).toString();
 
-    const response = await axiosInstance.get(`/listings?${queryParams}`);
+    console.log('Making API request to:', `/listings?${queryParams}`);
+    const response = await axiosInstance.get(`/listings?${queryParams}`, {
+      signal,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+
+    console.log('Raw API response:', response.data);
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to fetch listings');
+    }
+
     return {
       success: true,
-      listings: response.data.data,
-      total: response.data.pagination.total,
-      currentPage: response.data.pagination.page,
-      totalPages: response.data.pagination.pages
+      listings: response.data.data || [],
+      total: response.data.pagination?.total || 0,
+      currentPage: response.data.pagination?.page || 1,
+      totalPages: response.data.pagination?.pages || 1
     };
   } catch (error) {
+    if (error.name === 'AbortError') {
+      throw error;
+    }
     console.error('Error fetching listings:', error);
     return {
       success: false,
