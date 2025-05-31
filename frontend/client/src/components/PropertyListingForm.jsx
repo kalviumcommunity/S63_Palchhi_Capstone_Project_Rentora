@@ -164,11 +164,12 @@ const PropertyListingForm = ({ listing }) => {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="property-form">
+    <form onSubmit={handleSubmit} className="property-form" role="form" data-testid="property-form">
       <div className="form-grid">
         <div className="form-group form-grid-full">
-          <label>Title</label>
+          <label htmlFor="title">Title</label>
           <input
+            id="title"
             type="text"
             name="title"
             value={formData.title}
@@ -180,8 +181,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Price (₹)</label>
+          <label htmlFor="price">Price (₹)</label>
           <input
+            id="price"
             type="number"
             name="price"
             value={formData.price}
@@ -194,8 +196,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Property Type</label>
+          <label htmlFor="propertyType">Property Type</label>
           <select
+            id="propertyType"
             name="propertyType"
             value={formData.propertyType}
             onChange={handleChange}
@@ -208,8 +211,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Bedrooms</label>
+          <label htmlFor="bedrooms">Bedrooms</label>
           <input
+            id="bedrooms"
             type="number"
             name="bedrooms"
             value={formData.bedrooms}
@@ -222,8 +226,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Bathrooms</label>
+          <label htmlFor="bathrooms">Bathrooms</label>
           <input
+            id="bathrooms"
             type="number"
             name="bathrooms"
             value={formData.bathrooms}
@@ -236,8 +241,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Square Feet</label>
+          <label htmlFor="squareFeet">Square Feet</label>
           <input
+            id="squareFeet"
             type="number"
             name="squareFeet"
             value={formData.squareFeet}
@@ -249,8 +255,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group form-grid-full">
-          <label>Description</label>
+          <label htmlFor="description">Description</label>
           <textarea
+            id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
@@ -262,8 +269,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Address</label>
+          <label htmlFor="address">Address</label>
           <input
+            id="address"
             type="text"
             name="location.address"
             value={formData.location.address}
@@ -275,8 +283,9 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>City</label>
+          <label htmlFor="city">City</label>
           <input
+            id="city"
             type="text"
             name="location.city"
             value={formData.location.city}
@@ -288,7 +297,7 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>State</label>
+          <label htmlFor="state">State</label>
           <input
             type="text"
             name="location.state"
@@ -300,7 +309,7 @@ const PropertyListingForm = ({ listing }) => {
         </div>
 
         <div className="form-group">
-          <label>Pincode</label>
+          <label htmlFor="pincode">Pincode</label>
           <input
             type="text"
             name="location.pincode"
