@@ -72,19 +72,27 @@ exports.createTokenBooking = async (req, res, next) => {
 // Get all token bookings for a user
 exports.getUserTokenBookings = async (req, res, next) => {
   try {
+    console.log('Fetching token bookings for user:', req.user._id);
+
     const bookings = await TokenBooking.find({
-      $or: [{ buyer: req.user._id }, { seller: req.user._id }]
+      $or: [
+        { buyer: req.user._id },
+        { seller: req.user._id }
+      ]
     })
-      .populate('property', 'title images price location')
-      .populate('buyer', 'name email')
-      .populate('seller', 'name email')
-      .sort('-createdAt');
+    .populate('property', 'title images price location')
+    .populate('buyer', 'name email')
+    .populate('seller', 'name email')
+    .sort('-createdAt');
+
+    console.log(`Found ${bookings.length} bookings for user`);
 
     res.status(200).json({
       success: true,
       data: bookings
     });
   } catch (error) {
+    console.error('Error fetching user token bookings:', error);
     next(error);
   }
 };
@@ -187,31 +195,86 @@ exports.cancelTokenBooking = async (req, res, next) => {
 };
 
 // Upload payment proof
-exports.uploadPaymentProof = async (req, res, next) => {
+exports.uploadPaymentProof = async (req, res) => {
   try {
-    const booking = await TokenBooking.findById(req.params.id);
+    const { bookingId } = req.params;
+    const userId = req.user._id;
 
+    console.log('Upload payment proof request:', {
+      bookingId,
+      userId,
+      file: req.file,
+      user: req.user
+    });
+
+    // Find the booking
+    const booking = await TokenBooking.findById(bookingId);
     if (!booking) {
-      return next(new ErrorHandler('Token booking not found', 404));
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
     }
 
-    // Check if user is authorized to upload proof
-    if (booking.buyer._id.toString() !== req.user._id.toString()) {
-      return next(new ErrorHandler('Not authorized to upload payment proof', 403));
+    // Check if the user is authorized to upload payment proof
+    // Allow if user is the buyer, seller, or an admin
+    const isAuthorized = 
+      booking.buyer.toString() === userId.toString() || 
+      booking.seller.toString() === userId.toString() ||
+      req.user.role === 'admin';
+
+    if (!isAuthorized) {
+      console.log('Authorization failed:', {
+        bookingBuyer: booking.buyer.toString(),
+        bookingSeller: booking.seller.toString(),
+        requestUserId: userId.toString(),
+        userRole: req.user.role
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to upload payment proof for this booking'
+      });
     }
 
-    // Update payment proof with full URL path
-    const baseUrl = process.env.BASE_URL || 'http://localhost:8000';
-    const filePath = req.file.path.replace(/\\/g, '/'); // Convert Windows path to URL format
-    const relativePath = filePath.split('public')[1]; // Get path relative to public directory
-    booking.paymentProof = `${baseUrl}${relativePath}`;
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Convert absolute path to relative path
+    const relativePath = req.file.path.replace(/\\/g, '/').split('public/').pop();
+    console.log('File path conversion:', {
+      original: req.file.path,
+      relative: relativePath
+    });
+
+    // Update booking with payment proof
+    booking.paymentProof = relativePath;
+    booking.paymentStatus = 'pending';
     await booking.save();
+
+    console.log('Payment proof uploaded successfully:', {
+      bookingId,
+      paymentProof: booking.paymentProof
+    });
 
     res.status(200).json({
       success: true,
-      data: booking
+      message: 'Payment proof uploaded successfully',
+      data: {
+        bookingId: booking._id,
+        paymentProof: booking.paymentProof,
+        paymentStatus: booking.paymentStatus
+      }
     });
   } catch (error) {
-    next(error);
+    console.error('Error uploading payment proof:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload payment proof',
+      error: error.message
+    });
   }
 };

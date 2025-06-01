@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getTokenBooking, cancelTokenBooking, uploadPaymentProof } from '../../redux/actions/tokenBookingActions';
+import { API_URL } from '../../config';
 import {
   Box,
   Button,
@@ -39,8 +40,9 @@ const TokenBookingDetail = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [cancellationReason, setCancellationReason] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const { currentBooking: booking, loading, error } = useSelector(
+  const { currentBooking: booking, loading: bookingLoading, error } = useSelector(
     (state) => state.tokenBooking
   );
 
@@ -89,11 +91,39 @@ const TokenBookingDetail = () => {
       return;
     }
 
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a JPG, PNG, or PDF file',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (selectedFile.size > maxSize) {
+      toast({
+        title: 'File too large',
+        description: 'Please upload a file smaller than 5MB',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('paymentProof', selectedFile);
 
     try {
+      setLoading(true);
       await dispatch(uploadPaymentProof(id, formData));
+      
       toast({
         title: 'Payment proof uploaded successfully',
         status: 'success',
@@ -102,6 +132,7 @@ const TokenBookingDetail = () => {
       });
       setSelectedFile(null);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: 'Error uploading payment proof',
         description: error.response?.data?.message || 'Something went wrong',
@@ -109,10 +140,42 @@ const TokenBookingDetail = () => {
         duration: 5000,
         isClosable: true
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  const getImageUrl = (path) => {
+    if (!path) return '/default-property.png';
+    
+    // If it's already a full URL, return it
+    if (path.startsWith('http')) return path;
+    
+    // If it's a payment proof path
+    if (path.includes('payment_proofs')) {
+      const baseUrl = API_URL || 'http://localhost:8000';
+      // Extract just the filename if it's a full path
+      const filename = path.includes('\\') ? path.split('\\').pop() : path.split('/').pop();
+      const fullUrl = `${baseUrl}/uploads/payment_proofs/${filename}`;
+      
+      console.log('Payment proof URL:', {
+        originalPath: path,
+        filename,
+        constructedUrl: fullUrl
+      });
+      
+      return fullUrl;
+    }
+    
+    // For property images
+    const baseUrl = API_URL || 'http://localhost:8000';
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${baseUrl}${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
+    
+    return fullUrl;
+  };
+
+  if (bookingLoading) {
     return (
       <Flex justify="center" align="center" h="200px">
         <Spinner size="xl" />
@@ -158,12 +221,17 @@ const TokenBookingDetail = () => {
           </Heading>
           <Flex>
             <Image
-              src={booking.property?.images?.[0] || 'https://via.placeholder.com/200x200?text=No+Image'}
+              src={getImageUrl(booking.property?.images?.[0])}
               alt={booking.property?.title || 'Property Image'}
               boxSize="200px"
               objectFit="cover"
               borderRadius="md"
               mr={6}
+              onError={(e) => {
+                console.error('Property image load error:', e);
+                e.target.onerror = null;
+                e.target.src = '/default-property.png';
+              }}
             />
             <VStack align="start" spacing={2}>
               <Text fontSize="xl" fontWeight="bold">
@@ -175,7 +243,7 @@ const TokenBookingDetail = () => {
                   'Location not available'
                 }
               </Text>
-              <Text>Total Value: ₹{booking.totalPropertyValue?.toLocaleString() || '0'}</Text>
+              <Text>Total Value: ₹{(booking.totalPropertyValue || 0).toLocaleString()}</Text>
               <Badge colorScheme="blue" fontSize="md">
                 {booking.bookingType?.toUpperCase() || 'N/A'}
               </Badge>
@@ -192,7 +260,7 @@ const TokenBookingDetail = () => {
           <VStack align="start" spacing={3}>
             <HStack>
               <Text fontWeight="bold">Token Amount:</Text>
-              <Text>₹{booking.tokenAmount.toLocaleString()}</Text>
+              <Text>₹{(booking.tokenAmount || 0).toLocaleString()}</Text>
             </HStack>
             {booking.bookingType === 'rent' && (
               <HStack>
@@ -252,14 +320,18 @@ const TokenBookingDetail = () => {
           <Heading size="md" mb={4}>
             Payment Proof
           </Heading>
-          {booking.paymentProof ? (
+          {loading ? (
+            <Flex justify="center" align="center" h="200px">
+              <Spinner size="xl" />
+            </Flex>
+          ) : booking.paymentProof ? (
             <VStack align="start" spacing={3}>
               <Text fontWeight="bold">Payment Proof Uploaded:</Text>
               <Box>
                 {booking.paymentProof.endsWith('.pdf') ? (
                   <Button
                     as="a"
-                    href={booking.paymentProof}
+                    href={getImageUrl(booking.paymentProof)}
                     target="_blank"
                     rel="noopener noreferrer"
                     colorScheme="blue"
@@ -268,19 +340,73 @@ const TokenBookingDetail = () => {
                     View PDF
                   </Button>
                 ) : (
-                  <Image
-                    src={booking.paymentProof}
-                    alt="Payment Proof"
-                    maxW="400px"
-                    borderRadius="md"
-                    cursor="pointer"
-                    onClick={() => window.open(booking.paymentProof, '_blank')}
-                  />
+                  <Box position="relative">
+                    <Image
+                      src={getImageUrl(booking.paymentProof)}
+                      alt="Payment Proof"
+                      maxW="400px"
+                      borderRadius="md"
+                      cursor="pointer"
+                      onClick={() => window.open(getImageUrl(booking.paymentProof), '_blank')}
+                      onError={(e) => {
+                        console.error('Payment proof image load error:', {
+                          error: e,
+                          attemptedUrl: e.target.src,
+                          originalPath: booking.paymentProof
+                        });
+                        // Try loading from the backend server directly
+                        const backendUrl = `${API_URL || 'http://localhost:8000'}/uploads/payment_proofs/${booking.paymentProof.split(/[\\/]/).pop()}`;
+                        if (e.target.src !== backendUrl) {
+                          e.target.src = backendUrl;
+                        } else {
+                          e.target.onerror = null;
+                          e.target.src = '/default-property.png';
+                        }
+                      }}
+                    />
+                    <Text fontSize="sm" color="gray.500" mt={2}>
+                      Click to view full size
+                    </Text>
+                  </Box>
                 )}
               </Box>
             </VStack>
           ) : (
-            <Text color="gray.500">No payment proof uploaded yet</Text>
+            <VStack align="start" spacing={4}>
+              <Text color="gray.500">No payment proof uploaded yet</Text>
+              {booking.paymentStatus === 'pending' && (
+                <Box>
+                  <input
+                    type="file"
+                    id="fileInput"
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                    accept="image/*,.pdf"
+                  />
+                  <Button
+                    colorScheme="blue"
+                    onClick={() => document.getElementById('fileInput').click()}
+                    isLoading={loading}
+                    loadingText="Uploading..."
+                  >
+                    Upload Payment Proof
+                  </Button>
+                  {selectedFile && (
+                    <Box mt={4}>
+                      <Text mb={2}>Selected file: {selectedFile.name}</Text>
+                      <Button 
+                        colorScheme="green" 
+                        onClick={handleUploadProof}
+                        isLoading={loading}
+                        loadingText="Uploading..."
+                      >
+                        Confirm Upload
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </VStack>
           )}
         </Box>
 
@@ -294,14 +420,6 @@ const TokenBookingDetail = () => {
               >
                 Cancel Booking
               </Button>
-              {booking.paymentStatus === 'pending' && (
-                <Button
-                  colorScheme="blue"
-                  onClick={() => document.getElementById('fileInput').click()}
-                >
-                  Upload Payment Proof
-                </Button>
-              )}
             </>
           )}
           <Button
@@ -312,19 +430,6 @@ const TokenBookingDetail = () => {
             Back to Bookings
           </Button>
         </HStack>
-
-        <input
-          type="file"
-          id="fileInput"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-          accept="image/*,.pdf"
-        />
-        {selectedFile && (
-          <Button colorScheme="green" onClick={handleUploadProof}>
-            Confirm Upload
-          </Button>
-        )}
       </VStack>
 
       <Modal isOpen={isOpen} onClose={onClose}>

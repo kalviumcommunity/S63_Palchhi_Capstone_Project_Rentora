@@ -1,35 +1,38 @@
 const express = require('express');
 const router = express.Router();
+const { protect, authorize } = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
 const {
-  createTokenBooking,
   getUserTokenBookings,
   getTokenBooking,
+  createTokenBooking,
   updateTokenBookingStatus,
   cancelTokenBooking,
   uploadPaymentProof
 } = require('../controllers/tokenBookingController');
-const { protect } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
 
-// Create a new token booking
-router.post('/', protect, createTokenBooking);
+// Apply authentication middleware to all routes
+router.use(protect);
 
-// Get all token bookings for the logged-in user
-router.get('/my-bookings', protect, getUserTokenBookings);
+// Get user's token bookings
+router.get('/my-bookings', getUserTokenBookings);
 
-// Get a single token booking
-router.get('/:id', protect, getTokenBooking);
+// Routes
+router.route('/')
+  .get(getUserTokenBookings)
+  .post(createTokenBooking);
 
-// Update token booking status (seller only)
-router.patch('/:id/status', protect, updateTokenBookingStatus);
+router.route('/:id')
+  .get(getTokenBooking)
+  .put(updateTokenBookingStatus)
+  .delete(cancelTokenBooking);
 
-// Cancel token booking
-router.post('/:id/cancel', protect, cancelTokenBooking);
+// Cancel booking route
+router.post('/:id/cancel', cancelTokenBooking);
 
-// Upload payment proof
+// Payment proof upload route with file upload middleware
 router.post(
-  '/:id/payment-proof',
-  protect,
+  '/:bookingId/payment-proof',
   upload.single('paymentProof'),
   uploadPaymentProof
 );

@@ -71,6 +71,44 @@ io.on('connection', (socket) => {
   });
 });
 
+// CORS configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://stellar-cobbler-864deb.netlify.app'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept',
+    'Cache-Control',
+    'Pragma',
+    'If-Modified-Since',
+    'If-None-Match',
+    'Access-Control-Allow-Methods',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Origin'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range', 'ETag', 'Last-Modified'],
+  maxAge: 86400 // 24 hours
+}));
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -79,7 +117,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:5173", "ws:", "wss:"],
+      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:5173", "ws:", "wss:"],
       mediaSrc: ["'self'", "data:", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -87,38 +125,6 @@ app.use(helmet({
   },
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginEmbedderPolicy: false
-}));
-
-// CORS configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-  'http://localhost:3000',
-  'https://stellar-cobbler-864deb.netlify.app'
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Cache-Control', 
-    'Pragma',
-    'X-Requested-With'
-  ],
-  exposedHeaders: [
-    'Content-Type', 
-    'Authorization',
-    'Cache-Control',
-    'Pragma'
-  ]
 }));
 
 // Body parsing middleware
@@ -129,13 +135,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased limit to 500 requests per windowMs
+  max: 1000, // Increased limit to 1000 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for authenticated users
-    return req.user !== undefined;
+    // Skip rate limiting for authenticated users and image requests
+    return req.user !== undefined || req.path.startsWith('/uploads/');
   },
   keyGenerator: (req) => {
     // Use user ID as key if authenticated, otherwise use IP
@@ -143,8 +149,14 @@ const limiter = rateLimit({
   }
 });
 
-// Apply rate limiting to all routes
-app.use('/api/', limiter);
+// Apply rate limiting to all routes except uploads
+app.use('/api/', (req, res, next) => {
+  if (req.path.startsWith('/uploads/')) {
+    next();
+  } else {
+    limiter(req, res, next);
+  }
+});
 
 // Database connection
 connectDB();
@@ -183,60 +195,129 @@ const profileImagesDir = path.join(uploadsDir, 'profile-images');
 });
 
 // Serve static files with proper headers
-app.use('/uploads', express.static(path.join(projectRoot, 'public', 'uploads'), {
+app.use(['/uploads', '/api/uploads'], express.static(path.join(projectRoot, 'public', 'uploads'), {
   setHeaders: (res, filePath) => {
-    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-  },
-  fallthrough: false // Don't continue to next middleware if file not found
-}));
-
-// Error handler for static file serving
-app.use((err, req, res, next) => {
-  if (err.status === 404 && req.path.startsWith('/uploads/')) {
-    // For profile images, return a default avatar
-    if (req.path.includes('/profile-images/')) {
-      return res.redirect('/uploads/images/default-avatar.jpg');
+    // Set proper content type based on file extension
+    const ext = path.extname(filePath).toLowerCase();
+    const contentTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.webp': 'image/webp'
+    };
+    
+    const contentType = contentTypes[ext] || 'application/octet-stream';
+    res.set('Content-Type', contentType);
+    
+    // Get file stats for content length and modification time
+    try {
+      const stats = fs.statSync(filePath);
+      res.set('Content-Length', stats.size);
+      
+      // Use file's actual modification time for ETag and Last-Modified
+      const mtime = stats.mtime.getTime();
+      const etag = `"${mtime}-${stats.size}"`;
+      
+      // Set caching headers
+      res.set('Cache-Control', 'public, max-age=31536000, immutable'); // Cache for 1 year, immutable
+      res.set('ETag', etag);
+      res.set('Last-Modified', stats.mtime.toUTCString());
+      
+      // Set CORS headers
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.set('Vary', 'Origin');
+      
+      // Add debug logging for image requests
+      console.log('Serving static file:', {
+        path: filePath,
+        contentType: res.get('Content-Type'),
+        contentLength: res.get('Content-Length'),
+        extension: ext,
+        cacheControl: res.get('Cache-Control'),
+        etag: res.get('ETag'),
+        lastModified: res.get('Last-Modified')
+      });
+    } catch (error) {
+      console.error('Error getting file stats:', error);
     }
-    // For other uploads, return a 404
-    return res.status(404).json({
-      success: false,
-      message: 'File not found',
-      path: req.path
-    });
-  }
-  next(err);
-});
+  },
+  maxAge: '1y', // Cache for 1 year
+  etag: true, // Enable ETag
+  lastModified: true, // Enable Last-Modified
+  fallthrough: true // Continue to next middleware if file not found
+}));
 
 // Add debug logging for static file serving
 app.use((req, res, next) => {
-  if (req.path.startsWith('/uploads/')) {
-    const fullPath = path.join(projectRoot, 'public', req.path);
-    const exists = fs.existsSync(fullPath);
-    const dirPath = path.dirname(fullPath);
-    const dirExists = fs.existsSync(dirPath);
+  if (req.path.startsWith('/uploads/') || req.path.startsWith('/api/uploads/')) {
+    // Remove /api prefix if present and any query parameters
+    const cleanPath = req.path.replace(/^\/api/, '').split('?')[0];
+    const fullPath = path.join(projectRoot, 'public', cleanPath);
     
-    if (!exists) {
-      console.log('File not found:', {
-        path: req.path,
-        fullPath: fullPath,
-        dirExists: dirExists,
-        dirPath: dirPath
-      });
+    // Check if file exists
+    if (fs.existsSync(fullPath)) {
+      const stats = fs.statSync(fullPath);
+      const mtime = stats.mtime.getTime();
+      const etag = `"${mtime}-${stats.size}"`;
       
-      // For profile images, redirect to default avatar
-      if (req.path.includes('/profile-images/')) {
-        return res.redirect('/uploads/images/default-avatar.jpg');
+      // Check if client's cached version is still valid
+      const ifNoneMatch = req.headers['if-none-match'];
+      const ifModifiedSince = req.headers['if-modified-since'];
+      
+      if (ifNoneMatch === etag || (ifModifiedSince && new Date(ifModifiedSince).getTime() >= mtime)) {
+        // Client's cached version is still valid
+        res.status(304).end();
+        return;
       }
+    } else {
+      // File not found, try alternative locations
+      const filename = cleanPath.split('/').pop();
+      const isProfileImage = cleanPath.includes('/profile-images/');
+      
+      // Define possible locations to check
+      const possibleLocations = [
+        path.join(projectRoot, 'public', 'uploads', 'profile-images', filename),
+        path.join(projectRoot, 'public', 'uploads', 'images', filename),
+        path.join(projectRoot, 'public', 'uploads', 'images', isProfileImage ? 'default-avatar.jpg' : 'default-property.jpg')
+      ];
+      
+      // Try each location
+      for (const location of possibleLocations) {
+        if (fs.existsSync(location)) {
+          console.log('Found image in alternative location:', location);
+          return res.sendFile(location);
+        }
+      }
+      
+      // If no image found, serve default image
+      const defaultImage = path.join(
+        projectRoot,
+        'public',
+        'uploads',
+        'images',
+        isProfileImage ? 'default-avatar.jpg' : 'default-property.jpg'
+      );
+      
+      if (fs.existsSync(defaultImage)) {
+        console.log('Serving default image:', defaultImage);
+        return res.sendFile(defaultImage);
+      }
+      
+      // If even default image is not found, return 404
+      console.log('No image found, returning 404');
+      return res.status(404).send('Image not found');
     }
   }
   next();
 });
+
+// Serve static files from the public directory
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

@@ -2,6 +2,11 @@
  * Utility functions for handling profile images
  */
 
+import { API_URL, DEFAULT_IMAGE_PATHS, CACHE_CONFIG } from '../config';
+
+// Cache for image URLs
+const imageUrlCache = new Map();
+
 /**
  * Checks if a URL is a Google profile image
  * @param {string} url - The image URL to check
@@ -36,14 +41,14 @@ export const isGoogleProfileImage = (url) => {
       const encodedUrl = encodeURIComponent(url);
       // Add a timestamp to prevent caching issues
       const timestamp = Date.now();
-      return `http://localhost:8000/api/proxy/google-image?imageUrl=${encodedUrl}&t=${timestamp}`;
+      return `${API_URL}/proxy/google-image?imageUrl=${encodedUrl}&t=${timestamp}`;
     }
     
     // For local images, add the full server URL if needed
     if (url && !url.includes('http')) {
       // Add a timestamp to prevent caching issues for local images too
       const timestamp = Date.now();
-      return `http://localhost:8000${url}?t=${timestamp}`;
+      return `${API_URL}${url}?t=${timestamp}`;
     }
     
     // For other images, return as is with a timestamp
@@ -55,13 +60,9 @@ export const isGoogleProfileImage = (url) => {
    * @param {string} url - The image URL to preload
    * @returns {Promise} - A promise that resolves when the image is loaded or rejects on error
    */
-  export const preloadImage = (url) => {
+  export const preloadImage = (imagePath) => {
+    const url = getImageUrl(imagePath);
     return new Promise((resolve, reject) => {
-      if (!url) {
-        reject(new Error('No URL provided'));
-        return;
-      }
-      
       const img = new Image();
       img.onload = () => resolve(url);
       img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
@@ -73,3 +74,83 @@ export const isGoogleProfileImage = (url) => {
    * Default SVG avatar as a data URI
    */
   export const DEFAULT_AVATAR_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=';
+
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return DEFAULT_IMAGE_PATHS.PROPERTY;
+  
+  // Check cache first
+  if (imageUrlCache.has(imagePath)) {
+    return imageUrlCache.get(imagePath);
+  }
+  
+  let url;
+  if (imagePath.startsWith('http')) {
+    url = imagePath;
+  } else {
+    // Normalize path
+    const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    
+    // Handle profile images specifically
+    if (normalizedPath.includes('profile-images/')) {
+      // Keep the original path structure for profile images
+      url = `${API_URL}${normalizedPath}`;
+    } else {
+      // For other images, use the standard path
+      url = `${API_URL}${normalizedPath}`;
+    }
+  }
+  
+  // Cache the URL
+  imageUrlCache.set(imagePath, url);
+  
+  // Implement cache size limit
+  if (imageUrlCache.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
+    const firstKey = imageUrlCache.keys().next().value;
+    imageUrlCache.delete(firstKey);
+  }
+  
+  return url;
+};
+
+export const formatImageUrl = (imagePath) => {
+  return getImageUrl(imagePath);
+};
+
+export const handleImageError = (e, originalPath) => {
+  console.log('Image load failed:', {
+    src: e.target.src,
+    originalPath
+  });
+  
+  // Remove failed URL from cache
+  imageUrlCache.delete(originalPath);
+  
+  // Try alternative paths
+  const filename = originalPath?.split('/').pop();
+  if (filename) {
+    const isProfileImage = originalPath?.includes('/profile-images/');
+    const alternativePaths = [
+      isProfileImage ? `/uploads/profile-images/${filename}` : `/uploads/images/${filename}`,
+      isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY
+    ];
+    
+    for (const path of alternativePaths) {
+      const url = getImageUrl(path);
+      if (url !== e.target.src) {
+        console.log('Trying alternative path:', url);
+        e.target.src = url;
+        return;
+      }
+    }
+  }
+  
+  // If all attempts fail, use default image
+  e.target.src = originalPath?.includes('/profile-images/') 
+    ? DEFAULT_IMAGE_PATHS.AVATAR
+    : DEFAULT_IMAGE_PATHS.PROPERTY;
+};
+
+// Clear image cache
+export const clearImageCache = () => {
+  imageUrlCache.clear();
+};

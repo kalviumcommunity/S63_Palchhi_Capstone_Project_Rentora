@@ -27,7 +27,7 @@ const PropertiesPage = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [activePropertyType, setActivePropertyType] = React.useState('all');
   const [activeTags, setActiveTags] = React.useState([]);
-  const abortControllerRef = React.useRef(null);
+  const [error, setError] = React.useState(null);
 
   const propertyTypes = [
     { id: 'all', label: 'All Properties' },
@@ -56,72 +56,73 @@ const PropertiesPage = () => {
     { id: 'ahmedabad', label: 'Ahmedabad' }
   ];
 
-  // Function to fetch properties with abort controller
   const fetchProperties = async (currentFilters, page = 1) => {
-    // Cancel any ongoing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-
-    setLoading(true);
     try {
+      setLoading(true);
+      setError(null);
+      
       const apiFilters = { 
-        ...currentFilters, 
+        ...currentFilters,
         page,
+        limit: 10,
         _t: Date.now() // Prevent caching
       };
 
       console.log('Fetching properties with filters:', apiFilters);
-      const response = await getListings(apiFilters, abortControllerRef.current.signal);
-      console.log('API Response:', response);
+      const response = await getListings(page, apiFilters);
       
-      if (response.success && Array.isArray(response.listings)) {
-        console.log('Raw listings data:', response.listings);
-        
-        // Filter properties based on status only
-        const availableProperties = response.listings.filter(property => {
-          const isAvailable = property.status === 'available';
-          console.log(`Property ${property._id} (${property.title}):`, {
-            status: property.status,
-            willShow: isAvailable
-          });
-          return isAvailable;
-        });
-        
-        console.log('Filtered available properties:', availableProperties);
-        
-        if (availableProperties.length === 0) {
-          console.log('No available properties found');
-          toast.info('No available properties found. Please check back later.');
-        }
-        
-        setProperties(availableProperties);
-        setPagination({
-          total: availableProperties.length,
-          page: response.currentPage,
-          limit: 10,
-          pages: Math.ceil(availableProperties.length / 10)
-        });
-      } else {
-        console.log('No properties found or invalid response format');
-        setProperties([]);
-        setPagination({
-          total: 0,
-          page: 1,
-          limit: 10,
-          pages: 1
-        });
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Fetch aborted');
+      console.log('Raw API Response:', response);
+      
+      // Handle canceled requests
+      if (response?.message === 'Request was canceled') {
+        console.log('Request was canceled, skipping state updates');
         return;
       }
+      
+      if (!response || !response.success) {
+        console.error('API Error Response:', response);
+        throw new Error(response?.message || 'Failed to fetch properties');
+      }
+      
+      // Check if response.data exists and is an array
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('Invalid listings data:', response.data);
+        throw new Error('Invalid response format: listings data is not an array');
+      }
+      
+      console.log('Raw listings data:', response.data);
+      
+      // Filter properties based on status only
+      const availableProperties = response.data.filter(property => 
+        property.status === 'available' || property.status === 'token_booked'
+      );
+      
+      console.log('Available properties:', availableProperties);
+      
+      setProperties(availableProperties);
+      setPagination({
+        total: response.pagination?.total || availableProperties.length,
+        page: response.pagination?.page || page,
+        limit: response.pagination?.limit || 10,
+        pages: response.pagination?.pages || Math.ceil((response.pagination?.total || availableProperties.length) / 10)
+      });
+      
+      console.log('Updated pagination state:', {
+        total: response.pagination?.total || availableProperties.length,
+        page: response.pagination?.page || page,
+        limit: response.pagination?.limit || 10,
+        pages: response.pagination?.pages || Math.ceil((response.pagination?.total || availableProperties.length) / 10)
+      });
+      
+    } catch (error) {
+      // Don't show error for canceled requests
+      if (error.message === 'Request was canceled') {
+        console.log('Request was canceled, skipping error state');
+        return;
+      }
+      
       console.error('Error fetching properties:', error);
-      toast.error('Failed to fetch properties. Please try again.');
+      setError(error.message || 'Failed to fetch properties');
       setProperties([]);
       setPagination({
         total: 0,
@@ -134,7 +135,6 @@ const PropertiesPage = () => {
     }
   };
 
-  // Effect for initial load and filter changes
   React.useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const newFilters = {};
@@ -159,11 +159,8 @@ const PropertiesPage = () => {
     setFilters(newFilters);
     fetchProperties(newFilters, page);
 
-    // Cleanup function
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      // Cleanup function
     };
   }, [location.search]);
 
@@ -176,16 +173,14 @@ const PropertiesPage = () => {
       newFilters.propertyType = type;
     }
     
+    // Reset to first page when changing filters
+    newFilters.page = 1;
     
-    delete newFilters.page;
-    
-  
     navigate({
       pathname: location.pathname,
       search: new URLSearchParams(newFilters).toString()
     });
   };
-
 
   const handleTagSelect = (tag) => {
     const newFilters = { ...filters };
@@ -198,9 +193,8 @@ const PropertiesPage = () => {
       newFilters.buildingType = tag.value;
     }
     
-    
-    delete newFilters.page;
-    
+    // Reset to first page when changing filters
+    newFilters.page = 1;
     
     navigate({
       pathname: location.pathname,
@@ -208,7 +202,6 @@ const PropertiesPage = () => {
     });
   };
 
-  
   const handleTagRemove = (tagToRemove) => {
     const newFilters = { ...filters };
     
@@ -220,9 +213,8 @@ const PropertiesPage = () => {
       delete newFilters.buildingType;
     }
     
-
-    delete newFilters.page;
-    
+    // Reset to first page when changing filters
+    newFilters.page = 1;
     
     navigate({
       pathname: location.pathname,
@@ -230,25 +222,20 @@ const PropertiesPage = () => {
     });
   };
 
-  
   const handleAdvancedSearch = (advancedFilters) => {
-
     const newFilters = { ...filters, ...advancedFilters };
     
- 
-    delete newFilters.page;
+    // Reset to first page when changing filters
+    newFilters.page = 1;
     
-
     navigate({
       pathname: location.pathname,
       search: new URLSearchParams(newFilters).toString()
     });
   };
-
 
   const handlePageChange = (newPage) => {
     const newFilters = { ...filters, page: newPage };
-    
     
     navigate({
       pathname: location.pathname,
@@ -268,7 +255,6 @@ const PropertiesPage = () => {
     }
   };
 
-  
   const navigateToProperty = (id) => {
     navigate(`/properties/${id}`);
   };
@@ -394,15 +380,21 @@ const PropertiesPage = () => {
             <div className="loader-container">
               <Loader />
             </div>
+          ) : error ? (
+            <div className="error-container">
+              <h3>Error Loading Properties</h3>
+              <p>{error}</p>
+              <button onClick={() => fetchProperties(filters, pagination.page)}>
+                Try Again
+              </button>
+            </div>
           ) : (
             <>
               {Array.isArray(properties) && properties.length > 0 ? (
                 <div className="properties-grid">
-                  {properties
-                    .filter(property => property.isAvailable && property.status === 'available')
-                    .map((property, index) => (
+                  {properties.map((property, index) => (
                     <div 
-                      key={property._id} 
+                      key={property._id || index} 
                       className={`property-card fade-in shine stagger-${(index % 5) + 1}`}
                       onClick={() => navigateToProperty(property._id)}
                     >
@@ -412,7 +404,7 @@ const PropertiesPage = () => {
                             ? formatImageUrl(property.images[0]) 
                             : '/default-property.png'
                           } 
-                          alt={property.title}
+                          alt={property.title || 'Property'}
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.src = '/default-property.png';
@@ -424,18 +416,20 @@ const PropertiesPage = () => {
                       </div>
                       
                       <div className="property-details">
-                        <h3 className="property-title">{property.title}</h3>
+                        <h3 className="property-title">{property.title || 'Untitled Property'}</h3>
                         <p className="property-location">
-                          <FaMapMarkerAlt /> {property.location.city}, {property.location.state}
+                          <FaMapMarkerAlt /> {property.location?.city || 'Unknown'}, {property.location?.state || 'Unknown'}
                         </p>
-                        <p className="property-price pulse">₹{property.price.toLocaleString()}{property.propertyType === 'rent' ? '/month' : ''}</p>
+                        <p className="property-price pulse">
+                          ₹{property.price?.toLocaleString() || '0'}{property.propertyType === 'rent' ? '/month' : ''}
+                        </p>
                         
                         <div className="property-features">
                           <div className="feature">
-                            <FaBed /> {property.bedrooms} {property.bedrooms === 1 ? 'Bed' : 'Beds'}
+                            <FaBed /> {property.bedrooms || 0} {property.bedrooms === 1 ? 'Bed' : 'Beds'}
                           </div>
                           <div className="feature">
-                            <FaBath /> {property.bathrooms} {property.bathrooms === 1 ? 'Bath' : 'Baths'}
+                            <FaBath /> {property.bathrooms || 0} {property.bathrooms === 1 ? 'Bath' : 'Baths'}
                           </div>
                           {property.squareFeet && (
                             <div className="feature">
