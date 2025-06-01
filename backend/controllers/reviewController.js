@@ -269,16 +269,49 @@ exports.deleteReview = async (req, res) => {
 // Get reviews by current user
 exports.getUserReviews = async (req, res) => {
   try {
+    // First, verify the user exists
+    if (!req.user || !req.user._id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Find reviews with proper population
     const reviews = await Review.find({ user: req.user._id })
       .populate({
         path: 'listing',
-        select: 'title images location'
+        select: 'title images location createdBy',
+        // Don't return null if listing is deleted
+        options: { lean: true }
+      })
+      .populate({
+        path: 'user',
+        select: 'name profileImage',
+        // Don't return null if user is deleted
+        options: { lean: true }
       })
       .sort({ createdAt: -1 });
-    
+
+    // Log the reviews for debugging
+    console.log('Found reviews:', reviews.map(review => ({
+      id: review._id,
+      hasListing: !!review.listing,
+      listingTitle: review.listing?.title,
+      hasUser: !!review.user,
+      userName: review.user?.name
+    })));
+
+    // Filter out any reviews with missing data
+    const validReviews = reviews.filter(review => 
+      review && 
+      review.listing && 
+      review.user
+    );
+
     res.status(200).json({
       success: true,
-      data: reviews
+      data: validReviews
     });
   } catch (error) {
     console.error('Error fetching user reviews:', error.message);
