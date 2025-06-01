@@ -1,39 +1,31 @@
-import axiosInstance from '../utils/axiosConfig';
+import axiosInstance from './axiosConfig';
 
-export const getListings = async (filters = {}, signal) => {
+export const getListings = async (page = 1, filters = {}) => {
   try {
-    const queryParams = new URLSearchParams({
-      ...filters,
-      _t: Date.now(), // Add timestamp to prevent caching
-      nocache: true // Add nocache parameter
-    }).toString();
-
-    console.log('Making API request to:', `/listings?${queryParams}`);
-    const response = await axiosInstance.get(`/listings?${queryParams}`, {
-      signal,
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+    const response = await axiosInstance.get('/listings', {
+      params: {
+        page,
+        limit: 10,
+        ...filters
       }
     });
 
-    console.log('Raw API response:', response.data);
-
-    if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to fetch listings');
+    // Ensure the response has the expected format
+    if (!response.data) {
+      throw new Error('Invalid response: no data received');
     }
 
+    // Return the response data with success flag
     return {
       success: true,
-      listings: response.data.data || [],
-      total: response.data.pagination?.total || 0,
-      currentPage: response.data.pagination?.page || 1,
-      totalPages: response.data.pagination?.pages || 1
+      data: response.data.data || [],
+      pagination: response.data.pagination || {
+        page: 1,
+        pages: 1,
+        total: 0
+      }
     };
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw error;
-    }
     console.error('Error fetching listings:', error);
     return {
       success: false,
@@ -47,10 +39,10 @@ export const getListingById = async (id) => {
     const response = await axiosInstance.get(`/listings/${id}`);
     return {
       success: true,
-      listing: response.data.listing
+      data: response.data.data
     };
   } catch (error) {
-    console.error('Error fetching listing:', error);
+    console.error(`Error fetching listing ${id}:`, error);
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to fetch listing'
@@ -63,7 +55,7 @@ export const createListing = async (listingData) => {
     const response = await axiosInstance.post('/listings', listingData);
     return {
       success: true,
-      listing: response.data.listing
+      data: response.data.data
     };
   } catch (error) {
     console.error('Error creating listing:', error);
@@ -79,10 +71,10 @@ export const updateListing = async (id, listingData) => {
     const response = await axiosInstance.put(`/listings/${id}`, listingData);
     return {
       success: true,
-      listing: response.data.listing
+      data: response.data.data
     };
   } catch (error) {
-    console.error('Error updating listing:', error);
+    console.error(`Error updating listing ${id}:`, error);
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to update listing'
@@ -94,10 +86,11 @@ export const deleteListing = async (id) => {
   try {
     const response = await axiosInstance.delete(`/listings/${id}`);
     return {
-      success: true
+      success: true,
+      data: response.data.data
     };
   } catch (error) {
-    console.error('Error deleting listing:', error);
+    console.error(`Error deleting listing ${id}:`, error);
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to delete listing'
@@ -117,10 +110,12 @@ export const searchListings = async (searchQuery, filters = {}, page = 1, limit 
     const response = await axiosInstance.get(`/listings/search?${queryParams}`);
     return {
       success: true,
-      listings: response.data.listings,
-      total: response.data.total,
-      currentPage: response.data.currentPage,
-      totalPages: response.data.totalPages
+      data: response.data.data || [],
+      pagination: response.data.pagination || {
+        page: 1,
+        pages: 1,
+        total: 0
+      }
     };
   } catch (error) {
     console.error('Error searching listings:', error);

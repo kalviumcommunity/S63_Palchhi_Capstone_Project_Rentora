@@ -10,6 +10,7 @@ import ReviewsList from '../components/reviews/ReviewsList';
 import ChatButton from '../components/chat/ChatButton';
 import '../styles/PropertyShowcase.css';
 import { useAuth } from '../context/AuthContext';
+import { formatImageUrl } from '../utils/imageUtils';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
@@ -119,18 +120,6 @@ const PropertyShowcase = () => {
       setCurrentImageIndex((prevIndex) => 
         prevIndex === 0 ? property.images.length - 1 : prevIndex - 1
       );
-    }
-  };
-
-  const formatImageUrl = (imagePath) => {
-    if (!imagePath) return '';
-    
-    if (imagePath.startsWith('http')) {
-      return imagePath;
-    } else {
-    
-      const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `http://localhost:8000${normalizedPath}`;
     }
   };
 
@@ -272,10 +261,11 @@ const PropertyShowcase = () => {
                       src={formatImageUrl(property.images[currentImageIndex])}
                       alt={`${property.title} - Image ${currentImageIndex + 1}`}
                       className="main-property-image"
+                      crossOrigin="anonymous"
                       onError={(e) => {
                         console.error(`Failed to load image:`, property.images[currentImageIndex]);
                         e.target.onerror = null;
-                        e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22400%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20400%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22800%22%20height%3D%22400%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22285.4296875%22%20y%3D%22217.75625%22%3EImage%20Not%20Available%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';
+                        e.target.src = '/default-property.png';
                       }}
                     />
                     <div className="image-navigation">
@@ -308,9 +298,10 @@ const PropertyShowcase = () => {
                       <img 
                         src={formatImageUrl(image)} 
                         alt={`Thumbnail ${index + 1}`}
+                        crossOrigin="anonymous"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22100%22%20height%3D%22100%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3C%2Fg%3E%3C%2Fsvg%3E';
+                          e.target.src = '/default-property.png';
                         }}
                       />
                     </div>

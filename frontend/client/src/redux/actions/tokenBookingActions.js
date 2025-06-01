@@ -94,20 +94,30 @@ export const updateTokenBookingStatus = (id, status) => async (dispatch) => {
   }
 };
 
-export const cancelTokenBooking = (id, reason) => async (dispatch) => {
+export const cancelTokenBooking = (id, cancellationReason) => async (dispatch) => {
   try {
     dispatch({ type: CANCEL_TOKEN_BOOKING_REQUEST });
 
-    const { data } = await axiosInstance.post(`/token-bookings/${id}/cancel`, { reason });
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await axiosInstance.post(`/token-bookings/${id}/cancel`, {
+      cancellationReason
+    });
 
     dispatch({
       type: CANCEL_TOKEN_BOOKING_SUCCESS,
-      payload: data.data
+      payload: response.data.data
     });
+
+    return response.data;
   } catch (error) {
+    console.error('Error cancelling token booking:', error);
     dispatch({
       type: CANCEL_TOKEN_BOOKING_FAIL,
-      payload: error.response?.data?.message || 'Error cancelling token booking'
+      payload: error.response?.data?.message || 'Failed to cancel booking'
     });
     throw error;
   }
@@ -122,16 +132,28 @@ export const uploadPaymentProof = (id, formData) => async (dispatch) => {
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
         }
       }
     );
 
+    // First dispatch the upload success
     dispatch({
       type: UPLOAD_PAYMENT_PROOF_SUCCESS,
       payload: data.data
     });
+
+    // Then fetch the updated booking to ensure we have the latest data
+    const updatedBooking = await axiosInstance.get(`/token-bookings/${id}`);
+    dispatch({
+      type: GET_TOKEN_BOOKING_SUCCESS,
+      payload: updatedBooking.data.data
+    });
+
+    return data;
   } catch (error) {
+    console.error('Payment proof upload error:', error);
     dispatch({
       type: UPLOAD_PAYMENT_PROOF_FAIL,
       payload: error.response?.data?.message || 'Error uploading payment proof'

@@ -8,7 +8,13 @@ import { FaCamera, FaUser, FaEdit, FaTrash, FaStar } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
 import Loader from '../components/common/Loader';
 import '../styles/Profile.css';
-import { isGoogleProfileImage, DEFAULT_AVATAR_SVG, getSafeProfileImageUrl } from '../utils/imageUtils';
+import { DEFAULT_IMAGE_PATHS } from '../config';
+import { 
+  isGoogleProfileImage, 
+  DEFAULT_AVATAR_SVG, 
+  getSafeProfileImageUrl, 
+  handleImageError 
+} from '../utils/imageUtils';
 
 const ProfilePage = () => {
   const { user, updateProfile, refreshUserData, setUser, logout } = useAuth();
@@ -267,14 +273,20 @@ const ProfilePage = () => {
       if (result.success) {
         setMessage({ type: 'success', text: 'Profile image updated successfully!' });
         
-        // Create a temporary URL for the uploaded file to show it immediately
-        const tempImageUrl = URL.createObjectURL(file);
+        // Log the response data for debugging
+        console.log('Profile image upload response:', result.data);
+        
+        // Use the relativePath from the backend response
+        const imagePath = result.data.relativePath || result.data.profileImage;
         
         // Update the user context with the new image path
         const updatedUser = { 
           ...user, 
-          profileImage: result.data.profileImage
+          profileImage: imagePath
         };
+        
+        // Log the updated user data
+        console.log('Updated user data:', updatedUser);
         
         // Update the user context
         setUser(updatedUser);
@@ -284,13 +296,11 @@ const ProfilePage = () => {
         
         // Dispatch a custom event to notify other components
         window.dispatchEvent(new CustomEvent('user-profile-updated', {
-          detail: { timestamp: Date.now() }
+          detail: { 
+            timestamp: Date.now(),
+            user: updatedUser
+          }
         }));
-
-        // Clean up the temporary URL after a short delay
-        setTimeout(() => {
-          URL.revokeObjectURL(tempImageUrl);
-        }, 1000);
       } else {
         setMessage({ type: 'error', text: result.message || 'Failed to upload profile image' });
       }
@@ -337,70 +347,109 @@ const ProfilePage = () => {
   };
 
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/uploads/images/default-avatar.jpg';
+    if (!imagePath) {
+      console.log('No image path provided, using default avatar');
+      return DEFAULT_IMAGE_PATHS.AVATAR;
+    }
+    
     if (isGoogleProfileImage(imagePath)) {
+      console.log('Google profile image detected:', imagePath);
       return imagePath;
     }
+
+    // Get the base URL from environment variable or use the deployed backend URL
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://s63-palchhi-capstone-project-rentora-1.onrender.com';
     
-    // Clean the path by removing any duplicate directories and normalizing slashes
-    const cleanPath = imagePath
-      .replace(/\/images\/images\//g, '/images/')  // Remove duplicate images
-      .replace(/\/+/g, '/')                        // Remove multiple consecutive slashes
-      .replace(/^\/+|\/+$/g, '');                  // Remove leading/trailing slashes
-    
-    // For listing images, ensure they're in the correct directory
-    if (cleanPath.includes('images-')) {
-      return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/uploads/images/${cleanPath.split('/').pop()}`;
+    // If it's already a full URL, check if it's localhost and replace with deployed URL
+    if (imagePath.startsWith('http')) {
+      if (imagePath.includes('localhost')) {
+        const path = imagePath.split('/uploads/')[1];
+        const newUrl = `${baseUrl}/uploads/${path}`;
+        console.log('Replaced localhost URL with:', newUrl);
+        return newUrl;
+      }
+      console.log('Full URL detected:', imagePath);
+      return imagePath;
     }
+
+    // Clean the path
+    const cleanPath = imagePath
+      .replace(/^\/+|\/+$/g, '')  // Remove leading/trailing slashes
+      .replace(/\/+/g, '/')       // Normalize slashes
+      .replace(/^uploads\//, ''); // Remove leading 'uploads/' if present
     
-    // For other images (like profile images), use the standard path
-    const normalizedPath = cleanPath.startsWith('uploads/') ? `/${cleanPath}` : `/uploads/${cleanPath}`;
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${normalizedPath}`;
+    console.log('Cleaned image path:', cleanPath);
+
+    // Handle profile images
+    if (cleanPath.includes('profile-images/')) {
+      const profileImageUrl = `${baseUrl}/uploads/${cleanPath}`;
+      console.log('Profile image URL:', profileImageUrl);
+      return profileImageUrl;
+    }
+
+    // Handle listing images
+    if (cleanPath.includes('images-')) {
+      const filename = cleanPath.split('/').pop();
+      const listingImageUrl = `${baseUrl}/uploads/images/${filename}`;
+      console.log('Listing image URL:', listingImageUrl);
+      return listingImageUrl;
+    }
+
+    // Default case
+    const finalUrl = `${baseUrl}/uploads/${cleanPath}`;
+    console.log('Final image URL:', finalUrl);
+    return finalUrl;
   };
 
-  const handleImageError = (e, imagePath) => {
-    console.log("Image load failure for path:", imagePath);
-    e.target.onerror = null;
-    
-    if (isGoogleProfileImage(imagePath)) {
-      console.log("Google image failed to load - using fallback");
-      setGoogleImageFailed(true);
-      
-      if (imagePath.includes('googleusercontent.com')) {
-        const encodedUrl = encodeURIComponent(imagePath);
-        e.target.src = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/proxy/google-image?imageUrl=${encodedUrl}&t=${Date.now()}`;
-      } else {
-        e.target.src = '/uploads/images/default-avatar.jpg';
-      }
-    } else {
-      // Try alternative paths for local images
-      const filename = imagePath.split('/').pop();
-      console.log("Attempting to load image with filename:", filename);
-      
-      // For listing images, try these paths in order
-      const alternativePaths = [
-        `/uploads/images/${filename}`,
-        `/uploads/${filename}`,
-        `/uploads/profile-images/${filename}`
-      ];
-      
-      let currentPathIndex = 0;
-      const tryNextPath = () => {
-        if (currentPathIndex < alternativePaths.length) {
-          const nextPath = alternativePaths[currentPathIndex];
-          const fullUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${nextPath}?t=${Date.now()}`;
-          console.log(`Attempt ${currentPathIndex + 1}: Trying path: ${fullUrl}`);
-          e.target.src = fullUrl;
-          currentPathIndex++;
-        } else {
-          console.log("All attempts failed, using default image");
-          e.target.src = '/default-property.png';
-        }
-      };
-      
-      e.target.onerror = tryNextPath;
-      tryNextPath();
+  const tryNextPath = (originalPath, currentSrc) => {
+    console.log('Trying next path for:', {
+      originalPath,
+      currentSrc
+    });
+
+    // Extract filename from path
+    const filename = originalPath?.split('/').pop();
+    if (!filename) {
+      console.log('No filename found in path');
+      return DEFAULT_IMAGE_PATHS.AVATAR;
     }
+
+    // Define possible paths in order of preference
+    const possiblePaths = [
+      `/uploads/profile-images/${filename}`, // Original profile images directory
+      `/uploads/images/${filename}`, // Images directory
+      DEFAULT_IMAGE_PATHS.AVATAR // Default avatar
+    ];
+
+    // Find the current path index
+    const currentIndex = possiblePaths.findIndex(path => 
+      currentSrc.includes(path) || currentSrc.includes(filename)
+    );
+
+    // Try the next path
+    const nextIndex = (currentIndex + 1) % possiblePaths.length;
+    const nextPath = possiblePaths[nextIndex];
+
+    console.log('Trying next path:', {
+      currentIndex,
+      nextIndex,
+      nextPath
+    });
+
+    return nextPath;
+  };
+
+  const handleImageError = (e, originalPath) => {
+    console.log('Image load failure:', {
+      src: e.target.src,
+      originalPath,
+      error: e
+    });
+
+    // Try the next path
+    const nextPath = tryNextPath(originalPath, e.target.src);
+    console.log('Setting next path:', nextPath);
+    e.target.src = nextPath;
   };
 
   const handleDeleteListing = async (listingId) => {
@@ -537,7 +586,7 @@ const ProfilePage = () => {
                   </div>
                 ) : (
                   <img 
-                    src={`${getImageUrl(user.profileImage)}?t=${imageRefreshKey}`}
+                    src={getImageUrl(user.profileImage)}
                     alt={user.name} 
                     className="profile-image" 
                     onClick={handleProfileImageClick}
@@ -545,13 +594,20 @@ const ProfilePage = () => {
                     crossOrigin="anonymous" 
                     loading="eager" 
                     decoding="async" 
-                    onLoad={() => {
-                      console.log("Profile image loaded successfully");
+                    onLoad={(e) => {
+                      console.log("Profile image loaded successfully:", e.target.src);
                       if (googleImageFailed) {
                         setGoogleImageFailed(false);
                       }
                     }}
-                    onError={(e) => handleImageError(e, user.profileImage)}
+                    onError={(e) => {
+                      console.error("Profile image failed to load:", {
+                        src: e.target.src,
+                        originalPath: user.profileImage,
+                        error: e
+                      });
+                      handleImageError(e, user.profileImage);
+                    }}
                   />
                 )
               ) : (
@@ -744,35 +800,7 @@ const ProfilePage = () => {
                           onClick={() => navigate(`/edit-listing/${listing._id}`)}
                           onError={(e) => {
                             console.error(`Failed to load image for listing ${listing._id}:`, listing.images[0]);
-                            e.target.onerror = null;
-                            
-                            if (listing.images && listing.images.length > 0) {
-                              const imagePath = listing.images[0];
-                              const filename = imagePath.split('/').pop();
-                              
-                              const alternativePaths = [
-                                `/uploads/images/${filename}`,
-                                `/uploads/${filename}`,
-                                `/uploads/profile-images/${filename}`
-                              ];
-                              
-                              let currentPathIndex = 0;
-                              const tryNextPath = () => {
-                                if (currentPathIndex < alternativePaths.length) {
-                                  const nextPath = alternativePaths[currentPathIndex];
-                                  console.log(`Trying alternative path: ${nextPath}`);
-                                  e.target.src = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${nextPath}?t=${Date.now()}`;
-                                  currentPathIndex++;
-                                } else {
-                                  e.target.src = '/default-property.png';
-                                }
-                              };
-                              
-                              e.target.onerror = tryNextPath;
-                              tryNextPath();
-                            } else {
-                              e.target.src = '/default-property.png';
-                            }
+                            handleImageError(e, listing.images[0]);
                           }}
                         />
                         <div className="property-price">₹{listing.price.toLocaleString()}</div>
