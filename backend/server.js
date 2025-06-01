@@ -23,7 +23,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: [process.env.CLIENT_URL || "http://localhost:5173", "https://stellar-cobbler-864deb.netlify.app"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -92,7 +92,8 @@ app.use(helmet({
 // CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
-  'http://localhost:3000'
+  'http://localhost:3000',
+  'https://stellar-cobbler-864deb.netlify.app'
 ];
 
 app.use(cors({
