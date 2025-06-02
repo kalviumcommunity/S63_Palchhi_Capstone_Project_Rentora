@@ -1,10 +1,14 @@
-// API Configuration
-export const API_URL = 'http://localhost:8000/api';
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+export const API_URL = isDevelopment 
+  ? 'http://localhost:8000'
+  : 'https://rentora-backend.onrender.com';
 
 // Default image paths
 export const DEFAULT_IMAGE_PATHS = {
   AVATAR: '/uploads/images/default-avatar.jpg',
-  PROPERTY: '/uploads/images/default-property.jpg'
+  PROPERTY: '/uploads/images/default-property.jpg',
+  TESTIMONIAL: '/uploads/images/default-testimonial.jpg'
 };
 
 // Cache configuration
@@ -16,29 +20,36 @@ export const CACHE_CONFIG = {
 // API endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH: '/auth/refresh-token'
+    REGISTER: '/api/auth/register',
+    LOGIN: '/api/auth/login',
+    LOGOUT: '/api/auth/logout',
+    GET_CURRENT_USER: '/api/auth/me',
+    UPDATE_PROFILE: '/api/auth/update-profile',
+    UPDATE_PASSWORD: '/api/auth/update-password',
+    REFRESH_TOKEN: '/api/auth/refresh-token'
   },
   USER: {
-    PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/update-profile',
-    UPLOAD_IMAGE: '/users/upload-profile-image'
+    PROFILE: '/api/users/profile',
+    UPDATE_PROFILE: '/api/users/update-profile',
+    UPLOAD_IMAGE: '/api/users/upload-profile-image'
   },
   LISTINGS: {
-    ALL: '/listings',
-    SINGLE: (id) => `/listings/${id}`,
-    CREATE: '/listings',
-    UPDATE: (id) => `/listings/${id}`,
-    DELETE: (id) => `/listings/${id}`
+    GET_ALL: '/api/listings',
+    GET_BY_ID: (id) => `/api/listings/${id}`,
+    CREATE: '/api/listings',
+    UPDATE: (id) => `/api/listings/${id}`,
+    DELETE: (id) => `/api/listings/${id}`,
+    SEARCH: '/api/listings/search',
+    GET_MY_LISTINGS: '/api/listings/my-listings'
   },
-  BOOKINGS: {
-    ALL: '/bookings',
-    SINGLE: (id) => `/bookings/${id}`,
-    CREATE: '/bookings',
-    UPDATE: (id) => `/bookings/${id}`,
-    DELETE: (id) => `/bookings/${id}`,
-    PAYMENT_PROOF: (id) => `/token-bookings/${id}/payment-proof`
+  TOKEN_BOOKINGS: {
+    GET_ALL: '/api/token-bookings',
+    GET_BY_ID: (id) => `/api/token-bookings/${id}`,
+    CREATE: '/api/token-bookings',
+    UPDATE: (id) => `/api/token-bookings/${id}`,
+    DELETE: (id) => `/api/token-bookings/${id}`,
+    CANCEL: (id) => `/api/token-bookings/${id}/cancel`,
+    UPLOAD_PROOF: (id) => `/api/token-bookings/${id}/payment-proof`,
+    GET_MY_BOOKINGS: '/api/token-bookings/my-bookings'
   }
 }; 

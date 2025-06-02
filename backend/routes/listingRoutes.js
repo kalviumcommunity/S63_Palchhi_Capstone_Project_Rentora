@@ -15,7 +15,6 @@ const {
 
 const { protect, authorize } = require('../middleware/authMiddleware');
 
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     // Use consistent path for uploads
@@ -43,7 +42,6 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   if (file.fieldname === 'images') {
-
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -61,7 +59,6 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-
 const upload = multer({
   storage,
   fileFilter,
@@ -73,9 +70,11 @@ const uploadFields = upload.fields([
   { name: 'videos', maxCount: 3 }
 ]);
 
+// Public routes
 router.get('/listings', getAllListings);
 router.get('/listings/:id', getListingById);
 
+// Protected routes
 router.post('/listings', 
   protect, 
   uploadFields, 
@@ -89,7 +88,6 @@ router.put('/listings/:id',
   updateListing
 );
 
-
 router.delete('/listings/:id', 
   protect, 
   authorize(['seller', 'admin']),
@@ -100,7 +98,6 @@ router.get('/my-listings',
   protect, 
   getMyListings
 );
-
 
 router.post('/listings/upload-media',
   protect,
