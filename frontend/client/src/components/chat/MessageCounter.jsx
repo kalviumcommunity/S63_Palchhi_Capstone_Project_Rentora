@@ -55,6 +55,24 @@ const MessageCounter = () => {
     };
   }, [socket, connected]);
 
+  // If socket is not available, just show the count without real-time updates
+  if (!socket) {
+    return (
+      <AnimatePresence>
+        {unreadCount > 0 && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0 }}
+            className="message-badge"
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence>
       {unreadCount > 0 && (

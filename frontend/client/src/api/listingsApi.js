@@ -2,7 +2,7 @@ import axiosInstance from './axiosConfig';
 
 export const getListings = async (page = 1, filters = {}) => {
   try {
-    const response = await axiosInstance.get('/listings', {
+    const response = await axiosInstance.get('/api/listings', {
       params: {
         page,
         limit: 10,
@@ -36,7 +36,7 @@ export const getListings = async (page = 1, filters = {}) => {
 
 export const getListingById = async (id) => {
   try {
-    const response = await axiosInstance.get(`/listings/${id}`);
+    const response = await axiosInstance.get(`/api/listings/${id}`);
     return {
       success: true,
       data: response.data.data
@@ -52,7 +52,7 @@ export const getListingById = async (id) => {
 
 export const createListing = async (listingData) => {
   try {
-    const response = await axiosInstance.post('/listings', listingData);
+    const response = await axiosInstance.post('/api/listings', listingData);
     return {
       success: true,
       data: response.data.data
@@ -68,7 +68,7 @@ export const createListing = async (listingData) => {
 
 export const updateListing = async (id, listingData) => {
   try {
-    const response = await axiosInstance.put(`/listings/${id}`, listingData);
+    const response = await axiosInstance.put(`/api/listings/${id}`, listingData);
     return {
       success: true,
       data: response.data.data
@@ -84,7 +84,7 @@ export const updateListing = async (id, listingData) => {
 
 export const deleteListing = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/listings/${id}`);
+    const response = await axiosInstance.delete(`/api/listings/${id}`);
     return {
       success: true,
       data: response.data.data
@@ -107,7 +107,7 @@ export const searchListings = async (searchQuery, filters = {}, page = 1, limit 
       ...filters
     }).toString();
 
-    const response = await axiosInstance.get(`/listings/search?${queryParams}`);
+    const response = await axiosInstance.get(`/api/listings/search?${queryParams}`);
     return {
       success: true,
       data: response.data.data || [],

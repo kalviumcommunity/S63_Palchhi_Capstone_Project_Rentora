@@ -76,7 +76,9 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://stellar-cobbler-864deb.netlify.app'
+  'https://stellar-cobbler-864deb.netlify.app',
+  'https://rentora.netlify.app',
+  'https://*.netlify.app'  // Allow all Netlify subdomains
 ];
 
 app.use(cors({
@@ -84,10 +86,23 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) === -1) {
+    // Check if the origin is in the allowed list or is a Netlify domain
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        // Handle wildcard domains
+        const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
+        return pattern.test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+
+    if (!isAllowed) {
+      console.log('CORS blocked request from origin:', origin);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
+    
+    console.log('CORS allowed request from origin:', origin);
     return callback(null, true);
   },
   credentials: true,

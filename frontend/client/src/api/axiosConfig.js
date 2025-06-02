@@ -7,7 +7,8 @@ const axiosInstance = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Request interceptor
@@ -28,10 +29,20 @@ axiosInstance.interceptors.request.use(
         _t: Date.now()
       };
     }
+
+    // Log request for debugging
+    console.log('API Request:', {
+      method: config.method,
+      url: config.url,
+      params: config.params,
+      data: config.data,
+      headers: config.headers
+    });
     
     return config;
   },
   (error) => {
+    console.error('Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -39,9 +50,22 @@ axiosInstance.interceptors.request.use(
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
+    // Log successful response for debugging
+    console.log('API Response:', {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    });
     return response;
   },
   async (error) => {
+    // Log error response for debugging
+    console.error('API Error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config
+    });
+
     const originalRequest = error.config;
     
     // If error is 401 and we haven't tried to refresh token yet
@@ -55,7 +79,7 @@ axiosInstance.interceptors.response.use(
           throw new Error('No refresh token available');
         }
         
-        const response = await axios.post(`${API_URL}/auth/refresh-token`, {
+        const response = await axios.post(`${API_URL}/api/auth/refresh-token`, {
           refreshToken
         });
         

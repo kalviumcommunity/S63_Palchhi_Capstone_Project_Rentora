@@ -1,13 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { API_URL } from '../config';
 
 const SocketContext = createContext();
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
-    throw new Error('useSocket must be used within a SocketProvider');
+    // Return a default context instead of throwing an error
+    return {
+      socket: null,
+      connected: false,
+      joinChat: () => {},
+      leaveChat: () => {},
+      sendMessage: () => {},
+      startTyping: () => {},
+      stopTyping: () => {}
+    };
   }
   return context;
 };
@@ -18,10 +28,15 @@ export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
 
   useEffect(() => {
-    const socketInstance = io(import.meta.env.VITE_API_URL || 'http://localhost:8000', {
+    if (!user) return; // Don't connect if no user is logged in
+
+    const socketInstance = io(API_URL, {
       withCredentials: true,
       transports: ['websocket'],
-      autoConnect: true
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
 
     socketInstance.on('connect', () => {
@@ -34,6 +49,11 @@ export const SocketProvider = ({ children }) => {
       setConnected(false);
     });
 
+    socketInstance.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setConnected(false);
+    });
+
     socketInstance.on('error', (error) => {
       console.error('Socket error:', error);
     });
@@ -41,9 +61,11 @@ export const SocketProvider = ({ children }) => {
     setSocket(socketInstance);
 
     return () => {
-      socketInstance.disconnect();
+      if (socketInstance) {
+        socketInstance.disconnect();
+      }
     };
-  }, []);
+  }, [user]);
 
   const value = {
     socket,
