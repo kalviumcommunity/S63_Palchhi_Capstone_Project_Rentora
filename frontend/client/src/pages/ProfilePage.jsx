@@ -360,14 +360,8 @@ const ProfilePage = () => {
     // Get the base URL from environment variable or use the deployed backend URL
     const baseUrl = import.meta.env.VITE_API_URL || 'https://s63-palchhi-capstone-project-rentora-1.onrender.com';
     
-    // If it's already a full URL, check if it's localhost and replace with deployed URL
+    // If it's already a full URL, return as is
     if (imagePath.startsWith('http')) {
-      if (imagePath.includes('localhost')) {
-        const path = imagePath.split('/uploads/')[1];
-        const newUrl = `${baseUrl}/uploads/${path}`;
-        console.log('Replaced localhost URL with:', newUrl);
-        return newUrl;
-      }
       console.log('Full URL detected:', imagePath);
       return imagePath;
     }
@@ -399,57 +393,6 @@ const ProfilePage = () => {
     const finalUrl = `${baseUrl}/uploads/${cleanPath}`;
     console.log('Final image URL:', finalUrl);
     return finalUrl;
-  };
-
-  const tryNextPath = (originalPath, currentSrc) => {
-    console.log('Trying next path for:', {
-      originalPath,
-      currentSrc
-    });
-
-    // Extract filename from path
-    const filename = originalPath?.split('/').pop();
-    if (!filename) {
-      console.log('No filename found in path');
-      return DEFAULT_IMAGE_PATHS.AVATAR;
-    }
-
-    // Define possible paths in order of preference
-    const possiblePaths = [
-      `/uploads/profile-images/${filename}`, // Original profile images directory
-      `/uploads/images/${filename}`, // Images directory
-      DEFAULT_IMAGE_PATHS.AVATAR // Default avatar
-    ];
-
-    // Find the current path index
-    const currentIndex = possiblePaths.findIndex(path => 
-      currentSrc.includes(path) || currentSrc.includes(filename)
-    );
-
-    // Try the next path
-    const nextIndex = (currentIndex + 1) % possiblePaths.length;
-    const nextPath = possiblePaths[nextIndex];
-
-    console.log('Trying next path:', {
-      currentIndex,
-      nextIndex,
-      nextPath
-    });
-
-    return nextPath;
-  };
-
-  const handleImageError = (e, originalPath) => {
-    console.log('Image load failure:', {
-      src: e.target.src,
-      originalPath,
-      error: e
-    });
-
-    // Try the next path
-    const nextPath = tryNextPath(originalPath, e.target.src);
-    console.log('Setting next path:', nextPath);
-    e.target.src = nextPath;
   };
 
   const handleDeleteListing = async (listingId) => {
@@ -577,39 +520,31 @@ const ProfilePage = () => {
               {isUploading ? (
                 <Loader />
               ) : user.profileImage ? (
-                isGoogleProfileImage(user.profileImage) && googleImageFailed ? (
-                  <div 
-                    className="profile-image-placeholder"
-                    onClick={handleProfileImageClick}
-                  >
-                    <FaUser />
-                  </div>
-                ) : (
-                  <img 
-                    src={getImageUrl(user.profileImage)}
-                    alt={user.name} 
-                    className="profile-image" 
-                    onClick={handleProfileImageClick}
-                    key={`profile-img-${imageRefreshKey}`} 
-                    crossOrigin="anonymous" 
-                    loading="eager" 
-                    decoding="async" 
-                    onLoad={(e) => {
-                      console.log("Profile image loaded successfully:", e.target.src);
-                      if (googleImageFailed) {
-                        setGoogleImageFailed(false);
-                      }
-                    }}
-                    onError={(e) => {
-                      console.error("Profile image failed to load:", {
-                        src: e.target.src,
-                        originalPath: user.profileImage,
-                        error: e
-                      });
-                      handleImageError(e, user.profileImage);
-                    }}
-                  />
-                )
+                <img 
+                  src={getImageUrl(user.profileImage)}
+                  alt={user.name} 
+                  className="profile-image" 
+                  onClick={handleProfileImageClick}
+                  key={`profile-img-${imageRefreshKey}`} 
+                  crossOrigin="anonymous" 
+                  loading="eager" 
+                  decoding="async" 
+                  onLoad={(e) => {
+                    console.log("Profile image loaded successfully:", e.target.src);
+                    if (googleImageFailed) {
+                      setGoogleImageFailed(false);
+                    }
+                  }}
+                  onError={(e) => {
+                    console.error("Profile image failed to load:", {
+                      src: e.target.src,
+                      originalPath: user.profileImage,
+                      error: e
+                    });
+                    e.target.onerror = null;
+                    e.target.src = DEFAULT_IMAGE_PATHS.AVATAR;
+                  }}
+                />
               ) : (
                 <div 
                   className="profile-image-placeholder"
@@ -794,13 +729,14 @@ const ProfilePage = () => {
                         <img 
                           src={listing.images && listing.images.length > 0 
                             ? getImageUrl(listing.images[0])
-                            : '/default-property.png'} 
+                            : DEFAULT_IMAGE_PATHS.PROPERTY} 
                           alt={listing.title} 
                           className="property-image"
                           onClick={() => navigate(`/edit-listing/${listing._id}`)}
                           onError={(e) => {
                             console.error(`Failed to load image for listing ${listing._id}:`, listing.images[0]);
-                            handleImageError(e, listing.images[0]);
+                            e.target.onerror = null;
+                            e.target.src = DEFAULT_IMAGE_PATHS.PROPERTY;
                           }}
                         />
                         <div className="property-price">₹{listing.price.toLocaleString()}</div>
@@ -855,24 +791,27 @@ const ProfilePage = () => {
                 <div className="property-list">
                   {wishlistItems.map(item => (
                     <div key={item._id} className="property-card">
-                      <img 
-                        src={item.images && item.images.length > 0 
-                          ? getImageUrl(item.images[0])
-                          : '/default-property.png'} 
-                        alt={item.title} 
-                        className="property-image"
-                        onClick={() => navigate(`/properties/${item._id}`)}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/default-property.png';
-                        }}
-                      />
+                      <div className="property-image-container">
+                        <img 
+                          src={item.images && item.images.length > 0 
+                            ? getImageUrl(item.images[0])
+                            : DEFAULT_IMAGE_PATHS.PROPERTY} 
+                          alt={item.title} 
+                          className="property-image"
+                          onClick={() => navigate(`/properties/${item._id}`)}
+                          onError={(e) => {
+                            console.error(`Failed to load image for wishlist item ${item._id}:`, item.images[0]);
+                            e.target.onerror = null;
+                            e.target.src = DEFAULT_IMAGE_PATHS.PROPERTY;
+                          }}
+                        />
+                        <div className="property-price">₹{item.price.toLocaleString()}</div>
+                      </div>
                       <div className="property-details">
                         <h3 className="property-title">{item.title}</h3>
                         <p className="property-location">
                           {item.location.city}, {item.location.address}
                         </p>
-                        <p className="property-price">₹{item.price.toLocaleString()}</p>
                         <div className="property-meta">
                           <span>{item.bedrooms} Beds</span>
                           <span>{item.bathrooms} Baths</span>
