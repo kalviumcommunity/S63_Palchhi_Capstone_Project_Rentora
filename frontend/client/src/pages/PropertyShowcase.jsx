@@ -10,7 +10,7 @@ import ReviewsList from '../components/reviews/ReviewsList';
 import ChatButton from '../components/chat/ChatButton';
 import '../styles/PropertyShowcase.css';
 import { useAuth } from '../context/AuthContext';
-import { formatImageUrl, handleImageError } from '../utils/imageUtils';
+import { formatImageUrl } from '../utils/imageUtils';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
@@ -262,7 +262,11 @@ const PropertyShowcase = () => {
                       alt={`${property.title} - Image ${currentImageIndex + 1}`}
                       className="main-property-image"
                       crossOrigin="anonymous"
-                      onError={(e) => handleImageError(e, property.images[currentImageIndex])}
+                      onError={(e) => {
+                        console.error(`Failed to load image:`, property.images[currentImageIndex]);
+                        e.target.onerror = null;
+                        e.target.src = '/default-property.png';
+                      }}
                     />
                     <div className="image-navigation">
                       <button className="nav-button prev" onClick={prevImage}>
@@ -295,7 +299,10 @@ const PropertyShowcase = () => {
                         src={formatImageUrl(image)} 
                         alt={`Thumbnail ${index + 1}`}
                         crossOrigin="anonymous"
-                        onError={(e) => handleImageError(e, image)}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/default-property.png';
+                        }}
                       />
                     </div>
                   ))}
@@ -577,7 +584,7 @@ const PropertyShowcase = () => {
             <h2>Similar Properties</h2>
             <div className="similar-properties-grid">
               {similarProperties.map(prop => (
-                <Link to={`/property/${prop._id}`} key={prop._id} className="similar-property-card">
+                <Link to={`/properties/${prop._id}`} key={prop._id} className="similar-property-card">
                   <div className="similar-property-image">
                     <img 
                       src={prop.images && prop.images.length > 0 
