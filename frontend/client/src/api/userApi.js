@@ -43,15 +43,23 @@ export const updateUserProfile = async (userId, userData) => {
   }
 };
 
-export const uploadProfileImage = async (userId, formData) => {
+export const uploadProfileImage = async (formData, onProgress) => {
   try {
-    const response = await axiosInstance.put(`/auth/users/${userId}`, formData, {
+    // Get the current user from the auth context
+    const currentUser = JSON.parse(localStorage.getItem('user'));
+    if (!currentUser || !currentUser._id) {
+      throw new Error('User not found');
+    }
+
+    const response = await axiosInstance.put(`/auth/users/${currentUser._id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(`Upload Progress: ${percentCompleted}%`);
+        if (onProgress) {
+          onProgress(percentCompleted);
+        }
       }
     });
 
@@ -112,6 +120,22 @@ export const updateNotificationPreferences = async (userId, preferences) => {
     return {
       success: false,
       message: error.response?.data?.message || 'Failed to update notification preferences'
+    };
+  }
+};
+
+export const loginUser = async (email, password) => {
+  try {
+    const response = await axiosInstance.post('/auth/login', { email, password });
+    return {
+      success: true,
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error logging in:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Login failed'
     };
   }
 };
