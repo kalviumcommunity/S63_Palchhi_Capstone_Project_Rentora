@@ -13,7 +13,9 @@ import {
   isGoogleProfileImage, 
   DEFAULT_AVATAR_SVG, 
   getSafeProfileImageUrl, 
-  handleImageError 
+  handleImageError,
+  getImageUrl as getUtilImageUrl,
+  clearImageCache
 } from '../utils/imageUtils';
 
 const ProfilePage = () => {
@@ -268,7 +270,13 @@ const ProfilePage = () => {
       const formData = new FormData();
       formData.append('profileImage', file);
 
-      const result = await uploadProfileImage(user._id, formData);
+      const result = await uploadProfileImage(
+        user._id, 
+        formData,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
       
       if (result.success) {
         setMessage({ type: 'success', text: 'Profile image updated successfully!' });
@@ -276,13 +284,15 @@ const ProfilePage = () => {
         // Log the response data for debugging
         console.log('Profile image upload response:', result.data);
         
-        // Use the relativePath from the backend response
-        const imagePath = result.data.relativePath || result.data.profileImage;
+        // Get the profile image path from the response
+        const profileImage = result.data.profileImage;
+        
+        console.log('Profile image response data:', result.data);
         
         // Update the user context with the new image path
         const updatedUser = { 
           ...user, 
-          profileImage: imagePath
+          profileImage: profileImage
         };
         
         // Log the updated user data
@@ -290,6 +300,9 @@ const ProfilePage = () => {
         
         // Update the user context
         setUser(updatedUser);
+        
+        // Clear image cache to ensure the new image is loaded
+        clearImageCache();
         
         // Force a re-render of the profile image
         setImageRefreshKey(Date.now());
@@ -352,45 +365,14 @@ const ProfilePage = () => {
       return DEFAULT_IMAGE_PATHS.AVATAR;
     }
     
-    if (isGoogleProfileImage(imagePath)) {
-      console.log('Google profile image detected:', imagePath);
-      return imagePath;
-    }
-
-    // Get the base URL from environment variable or use the deployed backend URL
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://s63-palchhi-capstone-project-rentora-1.onrender.com';
+    // Use the utility function from imageUtils.js to handle all image URL processing
+    const imageUrl = getUtilImageUrl(imagePath);
     
-    // If it's already a full URL, return as is
-    if (imagePath.startsWith('http')) {
-      console.log('Full URL detected:', imagePath);
-      return imagePath;
-    }
-
-    // Clean the path
-    const cleanPath = imagePath
-      .replace(/^\/+|\/+$/g, '')  // Remove leading/trailing slashes
-      .replace(/\/+/g, '/')       // Normalize slashes
-      .replace(/^uploads\//, ''); // Remove leading 'uploads/' if present
+    // Add a timestamp to the URL to prevent caching issues
+    const timestamp = Date.now();
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    const finalUrl = `${imageUrl}${separator}t=${timestamp}`;
     
-    console.log('Cleaned image path:', cleanPath);
-
-    // Handle profile images
-    if (cleanPath.includes('profile-images/')) {
-      const profileImageUrl = `${baseUrl}/uploads/${cleanPath}`;
-      console.log('Profile image URL:', profileImageUrl);
-      return profileImageUrl;
-    }
-
-    // Handle listing images
-    if (cleanPath.includes('images-')) {
-      const filename = cleanPath.split('/').pop();
-      const listingImageUrl = `${baseUrl}/uploads/images/${filename}`;
-      console.log('Listing image URL:', listingImageUrl);
-      return listingImageUrl;
-    }
-
-    // Default case
-    const finalUrl = `${baseUrl}/uploads/${cleanPath}`;
     console.log('Final image URL:', finalUrl);
     return finalUrl;
   };
@@ -538,11 +520,33 @@ const ProfilePage = () => {
                   onError={(e) => {
                     console.error("Profile image failed to load:", {
                       src: e.target.src,
-                      originalPath: user.profileImage,
-                      error: e
+                      originalPath: user.profileImage
                     });
-                    e.target.onerror = null;
-                    e.target.src = DEFAULT_IMAGE_PATHS.AVATAR;
+                    
+                    // Try with a direct API_URL path first
+                    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                    
+                    if (user.profileImage) {
+                      // Clean up the path and create a direct URL
+                      const cleanPath = user.profileImage
+                        .replace(/^\/+|\/+$/g, '')  // Remove leading/trailing slashes
+                        .replace(/\/+/g, '/');      // Normalize slashes
+                      
+                      // Try the cleaned path
+                      e.target.src = `${API_URL}/${cleanPath}?t=${Date.now()}`;
+                      console.log("Trying alternative URL:", e.target.src);
+                      
+                      // Set a backup error handler if this also fails
+                      e.target.onerror = (e2) => {
+                        console.error("Fallback image also failed, using default avatar");
+                        e2.target.onerror = null;
+                        e2.target.src = DEFAULT_IMAGE_PATHS.AVATAR;
+                      };
+                    } else {
+                      // Use default avatar if no profile image
+                      e.target.onerror = null;
+                      e.target.src = DEFAULT_IMAGE_PATHS.AVATAR;
+                    }
                   }}
                 />
               ) : (

@@ -43,34 +43,42 @@ export const updateUserProfile = async (userId, userData) => {
   }
 };
 
-export const uploadProfileImage = async (formData, onProgress) => {
+export const uploadProfileImage = async (userId, formData, onProgress) => {
   try {
-    // Get the current user from the auth context
-    const currentUser = JSON.parse(localStorage.getItem('user'));
-    if (!currentUser || !currentUser._id) {
-      throw new Error('User not found');
+    // Use the provided userId instead of getting it from localStorage
+    if (!userId) {
+      // Fallback to localStorage if userId is not provided
+      const currentUser = JSON.parse(localStorage.getItem('user'));
+      if (!currentUser || !currentUser._id) {
+        throw new Error('User not found');
+      }
+      userId = currentUser._id;
     }
 
-    const response = await axiosInstance.put(`/auth/users/${currentUser._id}`, formData, {
+    const response = await axiosInstance.put(`/auth/users/${userId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      onUploadProgress: (progressEvent) => {
+      onUploadProgress: onProgress ? (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        if (onProgress) {
-          onProgress(percentCompleted);
-        }
-      }
+        onProgress(percentCompleted);
+      } : undefined
     });
 
     if (!response.data.success) {
       throw new Error(response.data.message || 'Upload failed');
     }
 
+    // Log the complete response data for debugging
+    console.log('Profile image upload API response:', response.data);
+    
+    // Return all relevant data from the response
     return {
       success: true,
       data: {
-        profileImage: response.data.data.profileImage
+        profileImage: response.data.data.profileImage,
+        // Include any other fields that might be in the response
+        ...response.data.data
       },
       message: 'Profile image uploaded successfully'
     };

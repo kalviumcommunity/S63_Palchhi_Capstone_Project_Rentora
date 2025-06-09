@@ -78,35 +78,45 @@ export const isGoogleProfileImage = (url) => {
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return DEFAULT_IMAGE_PATHS.PROPERTY;
   
-  // Check cache first
-  if (imageUrlCache.has(imagePath)) {
-    return imageUrlCache.get(imagePath);
+  // Generate a cache key that includes the path and a flag if it's a profile image
+  const isProfileImage = imagePath.includes('profile-images/');
+  const cacheKey = `${imagePath}_${isProfileImage ? 'profile' : 'property'}`;
+  
+  // Check cache first, but don't use cache if we're having issues
+  if (imageUrlCache.has(cacheKey) && !window.DISABLE_IMAGE_CACHE) {
+    return imageUrlCache.get(cacheKey);
   }
   
   let url;
+  
+  // If it's already a full URL
   if (imagePath.startsWith('http')) {
     url = imagePath;
   } else {
-    // Normalize path
+    // Normalize path - ensure it starts with '/'
     const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
     
-    // Handle profile images specifically
-    if (normalizedPath.includes('profile-images/')) {
-      // Keep the original path structure for profile images
-      url = `${API_URL}${normalizedPath}`;
-    } else {
-      // For other images, use the standard path
-      url = `${API_URL}${normalizedPath}`;
-    }
+    // Get the API URL from environment or use default
+    const baseUrl = API_URL || 'http://localhost:8000';
+    
+    // Create the full URL with the API base
+    url = `${baseUrl}${normalizedPath}`;
+    
+    // Add a cache-busting parameter
+    const timestamp = Date.now();
+    url = `${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`;
   }
   
-  // Cache the URL
-  imageUrlCache.set(imagePath, url);
-  
-  // Implement cache size limit
-  if (imageUrlCache.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
-    const firstKey = imageUrlCache.keys().next().value;
-    imageUrlCache.delete(firstKey);
+  // Only cache if not disabled
+  if (!window.DISABLE_IMAGE_CACHE) {
+    // Cache the URL
+    imageUrlCache.set(cacheKey, url);
+    
+    // Implement cache size limit
+    if (imageUrlCache.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
+      const firstKey = imageUrlCache.keys().next().value;
+      imageUrlCache.delete(firstKey);
+    }
   }
   
   return url;
@@ -122,29 +132,76 @@ export const handleImageError = (e, originalPath) => {
     originalPath
   });
   
-  // Remove failed URL from cache
-  imageUrlCache.delete(originalPath);
-  
-  // Try alternative paths
-  const filename = originalPath?.split('/').pop();
-  if (filename) {
-    const isProfileImage = originalPath?.includes('/profile-images/');
-    const alternativePaths = [
-      isProfileImage ? `/uploads/profile-images/${filename}` : `/uploads/images/${filename}`,
-      isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY
-    ];
+  // Temporarily disable image cache for this session if we're having persistent issues
+  if (!window.IMAGE_ERROR_COUNT) {
+    window.IMAGE_ERROR_COUNT = 1;
+  } else {
+    window.IMAGE_ERROR_COUNT++;
     
-    for (const path of alternativePaths) {
-      const url = getImageUrl(path);
-      if (url !== e.target.src) {
-        console.log('Trying alternative path:', url);
-        e.target.src = url;
-        return;
-      }
+    // If we have too many errors, disable caching
+    if (window.IMAGE_ERROR_COUNT > 5) {
+      console.warn('Too many image errors, disabling image cache');
+      window.DISABLE_IMAGE_CACHE = true;
+      
+      // Clear the existing cache
+      clearImageCache();
     }
   }
   
-  // If all attempts fail, use default image
+  // Remove failed URL from cache
+  if (originalPath) {
+    const isProfileImage = originalPath.includes('profile-images/');
+    const cacheKey = `${originalPath}_${isProfileImage ? 'profile' : 'property'}`;
+    imageUrlCache.delete(cacheKey);
+  }
+  
+  try {
+    // Try alternative paths
+    const filename = originalPath?.split('/').pop();
+    if (filename) {
+      const isProfileImage = originalPath?.includes('/profile-images/');
+      const baseUrl = API_URL || 'http://localhost:8000';
+      
+      // Try different path combinations
+      const alternativePaths = [
+        // Direct path with timestamp
+        `${baseUrl}${isProfileImage ? '/uploads/profile-images/' : '/uploads/images/'}${filename}?nocache=${Date.now()}`,
+        
+        // Just the filename in the expected location
+        isProfileImage ? `/uploads/profile-images/${filename}` : `/uploads/images/${filename}`,
+        
+        // Default image
+        isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY
+      ];
+      
+      // Try the first alternative path
+      if (alternativePaths.length > 0) {
+        console.log('Trying alternative path:', alternativePaths[0]);
+        e.target.src = alternativePaths[0];
+        
+        // Set up a fallback chain for subsequent alternatives
+        let fallbackIndex = 1;
+        e.target.onerror = (nextE) => {
+          if (fallbackIndex < alternativePaths.length) {
+            console.log(`Trying next fallback (${fallbackIndex + 1}/${alternativePaths.length}):`, alternativePaths[fallbackIndex]);
+            nextE.target.src = alternativePaths[fallbackIndex];
+            fallbackIndex++;
+          } else {
+            // Final fallback
+            console.log('All fallbacks failed, using default image');
+            nextE.target.onerror = null;
+            nextE.target.src = isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY;
+          }
+        };
+        return;
+      }
+    }
+  } catch (err) {
+    console.error('Error in image fallback handling:', err);
+  }
+  
+  // If all else fails or if there's an error in our error handler
+  e.target.onerror = null;
   e.target.src = originalPath?.includes('/profile-images/') 
     ? DEFAULT_IMAGE_PATHS.AVATAR
     : DEFAULT_IMAGE_PATHS.PROPERTY;
