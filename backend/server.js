@@ -23,7 +23,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [process.env.CLIENT_URL || "http://localhost:5173", "https://stellar-cobbler-864deb.netlify.app"],
+    origin: [process.env.CLIENT_URL || "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -73,12 +73,8 @@ io.on('connection', (socket) => {
 
 // CORS configuration
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://stellar-cobbler-864deb.netlify.app',
-  'https://rentora.netlify.app',
-  'https://*.netlify.app'  // Allow all Netlify subdomains
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000'
 ];
 
 app.use(cors({
@@ -86,13 +82,8 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if the origin is in the allowed list or is a Netlify domain
+    // Check if the origin is in the allowed list
     const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin.includes('*')) {
-        // Handle wildcard domains
-        const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
-        return pattern.test(origin);
-      }
       return allowedOrigin === origin;
     });
 
@@ -132,7 +123,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:5173", "ws:", "wss:"],
+      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:3000", "ws:", "wss:"],
       mediaSrc: ["'self'", "data:", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []

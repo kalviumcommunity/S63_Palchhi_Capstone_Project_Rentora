@@ -2,7 +2,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 
 export const API_URL = isDevelopment 
   ? 'http://localhost:8000'
-  : 'https://rentora-backend.onrender.com';
+  : import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Default image paths
 export const DEFAULT_IMAGE_PATHS = {

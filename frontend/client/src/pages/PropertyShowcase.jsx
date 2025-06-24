@@ -11,6 +11,7 @@ import ChatButton from '../components/chat/ChatButton';
 import '../styles/PropertyShowcase.css';
 import { useAuth } from '../context/AuthContext';
 import { formatImageUrl } from '../utils/imageUtils';
+import { SafeImage } from '../hooks/useImageLoader.jsx';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
@@ -257,15 +258,14 @@ const PropertyShowcase = () => {
               <div className="main-image-container">
                 {property.images && property.images.length > 0 ? (
                   <>
-                    <img 
-                      src={formatImageUrl(property.images[currentImageIndex])}
+                    <SafeImage 
+                      src={property.images[currentImageIndex]}
                       alt={`${property.title} - Image ${currentImageIndex + 1}`}
                       className="main-property-image"
+                      fallbackSrc="/uploads/images/default-property.jpg"
                       crossOrigin="anonymous"
                       onError={(e) => {
-                        console.error(`Failed to load image:`, property.images[currentImageIndex]);
-                        e.target.onerror = null;
-                        e.target.src = '/default-property.png';
+                        console.error(`Failed to load main image:`, property.images[currentImageIndex]);
                       }}
                     />
                     <div className="image-navigation">
@@ -295,13 +295,13 @@ const PropertyShowcase = () => {
                       className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                       onClick={() => setCurrentImageIndex(index)}
                     >
-                      <img 
-                        src={formatImageUrl(image)} 
+                      <SafeImage 
+                        src={image} 
                         alt={`Thumbnail ${index + 1}`}
+                        fallbackSrc="/uploads/images/default-property.jpg"
                         crossOrigin="anonymous"
                         onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/default-property.png';
+                          console.error(`Failed to load thumbnail:`, image);
                         }}
                       />
                     </div>

@@ -1,4 +1,4 @@
-import axiosInstance from './axiosConfig';
+import axiosInstance from '../utils/axiosConfig';
 import { API_URL } from '../config';
 
 export const uploadPaymentProof = async (bookingId, formData) => {

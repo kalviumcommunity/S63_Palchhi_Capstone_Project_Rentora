@@ -1530,3 +1530,62 @@
   transform: none;
   box-shadow: none;
 }
+
+/* Image loading placeholder styles */
+.image-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  min-height: 200px;
+}
+
+.main-image-container .image-loading {
+  width: 100%;
+  height: 400px;
+  border-radius: 12px;
+}
+
+.thumbnail .image-loading {
+  width: 100px;
+  height: 80px;
+  border-radius: 6px;
+}
+
+.loading-placeholder {
+  color: #999;
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loading-placeholder::after {
+  content: '';
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Improve image error handling visual feedback */
+.main-property-image,
+.thumbnail img {
+  transition: opacity 0.3s ease;
+}
+
+.main-property-image[src*="data:image/svg"],
+.thumbnail img[src*="data:image/svg"] {
+  opacity: 0.8;
+  filter: grayscale(20%);
+}

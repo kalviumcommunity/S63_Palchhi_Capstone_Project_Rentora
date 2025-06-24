@@ -1,4 +1,4 @@
-import axiosInstance from '../api/axiosConfig';
+import axiosInstance from '../utils/axiosConfig';
 import { API_URL } from '../config';
 
 // Action Types
