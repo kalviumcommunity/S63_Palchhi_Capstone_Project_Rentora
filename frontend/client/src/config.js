@@ -1,8 +1,7 @@
-const isDevelopment = process.env.NODE_ENV === 'development';
 
-export const API_URL = isDevelopment 
-  ? 'http://localhost:8000'
-  : import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+export const API_URL = 
+  `${import.meta.env.VITE_API_URL}`;
 
 // Default image paths
 export const DEFAULT_IMAGE_PATHS = {
