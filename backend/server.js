@@ -23,7 +23,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:3000",
+      "https://magical-otter-cbb01e.netlify.app",
+      "https://s63-palchhi-capstone-project-rentora.onrender.com"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -72,31 +76,18 @@ io.on('connection', (socket) => {
 });
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-  process.env.CLIENT_URL,
-  'http://localhost:3000'
-].filter(Boolean);
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.CLIENT_URL,
+      'http://localhost:3000',
+      'https://magical-otter-cbb01e.netlify.app',
+      'https://s63-palchhi-capstone-project-rentora.onrender.com'
+    ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if the origin is in the allowed list
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      return allowedOrigin === origin;
-    });
-
-    if (!isAllowed) {
-      console.log('CORS blocked request from origin:', origin);
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    
-    console.log('CORS allowed request from origin:', origin);
-    return callback(null, true);
-  },
+  origin: '*', // Allow all origins for now to debug the issue
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -107,10 +98,7 @@ app.use(cors({
     'Cache-Control',
     'Pragma',
     'If-Modified-Since',
-    'If-None-Match',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Origin'
+    'If-None-Match'
   ],
   exposedHeaders: ['Content-Range', 'X-Content-Range', 'ETag', 'Last-Modified'],
   maxAge: 86400 // 24 hours
@@ -124,7 +112,15 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:3000", "ws:", "wss:"],
+      connectSrc: [
+        "'self'", 
+        "http://localhost:8000", 
+        "http://localhost:3000", 
+        "https://magical-otter-cbb01e.netlify.app",
+        "https://s63-palchhi-capstone-project-rentora.onrender.com",
+        "ws:", 
+        "wss:"
+      ],
       mediaSrc: ["'self'", "data:", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -138,6 +134,40 @@ app.use(helmet({
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Handle OPTIONS preflight requests
+app.options('*', (req, res) => {
+  // Log the request for debugging
+  console.log('OPTIONS request received:', {
+    origin: req.headers.origin,
+    path: req.path,
+    method: req.method
+  });
+  
+  // Set permissive CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.status(200).end();
+});
+
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  // Log the request for debugging
+  if (req.method !== 'OPTIONS') {
+    console.log('Request received:', {
+      origin: req.headers.origin,
+      path: req.path,
+      method: req.method
+    });
+  }
+  
+  // Set permissive CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -168,7 +198,7 @@ app.use('/api/', (req, res, next) => {
 // Database connection
 connectDB();
 
-// Routes
+// Routes with /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', protect, wishlistRoutes);
 app.use('/api', listingRoutes);
@@ -177,6 +207,14 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/token-bookings', tokenBookingRoutes);
+
+// Routes without /api prefix (for backward compatibility)
+app.use('/auth', authRoutes);
+app.use('/wishlist', protect, wishlistRoutes);
+app.use('/contact', contactRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/token-bookings', tokenBookingRoutes);
 
 // Get absolute paths for upload directories
 const projectRoot = __dirname;
@@ -325,6 +363,7 @@ app.use((req, res, next) => {
 
 // Serve static files from the public directory
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/test', express.static(path.join(__dirname, 'public')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -332,6 +371,27 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
+  });
+});
+
+// CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  // Log the request headers for debugging
+  console.log('CORS test request headers:', req.headers);
+  
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.status(200).json({
+    success: true,
+    message: 'CORS is working!',
+    headers: {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      referer: req.headers.referer
+    }
   });
 });
 
