@@ -2,7 +2,7 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const addToWishlist = async (listingId) => {
   try {
-    const response = await axiosInstance.post('/wishlist/add', { listingId });
+    const response = await axiosInstance.post('/api/wishlist/add', { listingId });
     return {
       success: true,
       data: response.data.data
@@ -18,7 +18,7 @@ export const addToWishlist = async (listingId) => {
 
 export const removeFromWishlist = async (listingId) => {
   try {
-    const response = await axiosInstance.delete(`/wishlist/remove/${listingId}`);
+    const response = await axiosInstance.delete(`/api/wishlist/remove/${listingId}`);
     return {
       success: true,
       data: response.data.data,
@@ -35,7 +35,7 @@ export const removeFromWishlist = async (listingId) => {
 
 export const getWishlist = async () => {
   try {
-    const response = await axiosInstance.get('/wishlist');
+    const response = await axiosInstance.get('/api/wishlist');
     return {
       success: true,
       data: response.data.data
@@ -51,7 +51,7 @@ export const getWishlist = async () => {
 
 export const isInWishlist = async (listingId) => {
   try {
-    const response = await axiosInstance.get(`/wishlist/check/${listingId}`);
+    const response = await axiosInstance.get(`/api/wishlist/check/${listingId}`);
     return {
       success: true,
       isInWishlist: response.data.inWishlist
@@ -67,7 +67,7 @@ export const isInWishlist = async (listingId) => {
 
 export const clearWishlist = async () => {
   try {
-    const response = await axiosInstance.delete('/wishlist/clear');
+    const response = await axiosInstance.delete('/api/wishlist/clear');
     return {
       success: true,
       data: response.data.data

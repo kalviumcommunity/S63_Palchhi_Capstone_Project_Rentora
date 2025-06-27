@@ -2,7 +2,7 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const createChat = async (listingId, receiverId) => {
   try {
-    const response = await axiosInstance.post('/chats', {
+    const response = await axiosInstance.post('/api/chats', {
       listingId,
       receiverId
     });
@@ -21,7 +21,7 @@ export const createChat = async (listingId, receiverId) => {
 
 export const getChats = async (page = 1, limit = 20) => {
   try {
-    const response = await axiosInstance.get(`/chats?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get(`/api/chats?page=${page}&limit=${limit}`);
     return {
       success: true,
       data: response.data.data
@@ -40,7 +40,7 @@ export const getUserChats = getChats;
 
 export const getChatById = async (chatId) => {
   try {
-    const response = await axiosInstance.get(`/chats/${chatId}`);
+    const response = await axiosInstance.get(`/api/chats/${chatId}`);
     return {
       success: true,
       data: response.data.data
@@ -56,7 +56,7 @@ export const getChatById = async (chatId) => {
 
 export const getChatMessages = async (chatId, page = 1, limit = 50) => {
   try {
-    const response = await axiosInstance.get(`/chats/${chatId}/messages?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get(`/api/chats/${chatId}/messages?page=${page}&limit=${limit}`);
     return {
       success: true,
       messages: response.data.messages,
@@ -75,7 +75,7 @@ export const getChatMessages = async (chatId, page = 1, limit = 50) => {
 
 export const sendMessage = async (chatId, content) => {
   try {
-    const response = await axiosInstance.post(`/chats/${chatId}/messages`, { content });
+    const response = await axiosInstance.post(`/api/chats/${chatId}/messages`, { content });
     return {
       success: true,
       data: response.data.data
@@ -91,7 +91,7 @@ export const sendMessage = async (chatId, content) => {
 
 export const markMessagesAsRead = async (chatId) => {
   try {
-    const response = await axiosInstance.put(`/chats/${chatId}/read`);
+    const response = await axiosInstance.put(`/api/chats/${chatId}/read`);
     return {
       success: true,
       data: response.data.data
@@ -107,7 +107,7 @@ export const markMessagesAsRead = async (chatId) => {
 
 export const deleteChat = async (chatId) => {
   try {
-    const response = await axiosInstance.delete(`/chats/${chatId}`);
+    const response = await axiosInstance.delete(`/api/chats/${chatId}`);
     return {
       success: true,
       data: response.data.data
