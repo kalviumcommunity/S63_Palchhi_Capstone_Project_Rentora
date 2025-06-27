@@ -2,7 +2,7 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const createReview = async (listingId, reviewData) => {
   try {
-    const response = await axiosInstance.post(`/reviews/listing/${listingId}`, {
+    const response = await axiosInstance.post(`/api/reviews/listing/${listingId}`, {
       rating: reviewData.rating,
       title: reviewData.title,
       comment: reviewData.comment
@@ -23,7 +23,7 @@ export const createReview = async (listingId, reviewData) => {
 
 export const updateReview = async (reviewId, reviewData) => {
   try {
-    const response = await axiosInstance.put(`/reviews/${reviewId}`, {
+    const response = await axiosInstance.put(`/api/reviews/${reviewId}`, {
       rating: reviewData.rating,
       title: reviewData.title,
       comment: reviewData.comment
@@ -44,7 +44,7 @@ export const updateReview = async (reviewId, reviewData) => {
 
 export const deleteReview = async (reviewId) => {
   try {
-    const response = await axiosInstance.delete(`/reviews/${reviewId}`);
+    const response = await axiosInstance.delete(`/api/reviews/${reviewId}`);
     return {
       success: true
     };
@@ -59,7 +59,7 @@ export const deleteReview = async (reviewId) => {
 
 export const getListingReviews = async (listingId, page = 1, limit = 10) => {
   try {
-    const response = await axiosInstance.get(`/reviews/listing/${listingId}?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get(`/api/reviews/listing/${listingId}?page=${page}&limit=${limit}`);
     return {
       success: true,
       reviews: response.data.data.reviews,
@@ -77,7 +77,7 @@ export const getListingReviews = async (listingId, page = 1, limit = 10) => {
 
 export const getUserReviews = async (page = 1, limit = 10) => {
   try {
-    const response = await axiosInstance.get(`/reviews/user?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get(`/api/reviews/user?page=${page}&limit=${limit}`);
     return {
       success: true,
       reviews: response.data.data,

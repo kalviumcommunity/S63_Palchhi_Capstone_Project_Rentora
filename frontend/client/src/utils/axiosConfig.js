@@ -3,7 +3,7 @@ import { API_URL } from '../config';
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}`,
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

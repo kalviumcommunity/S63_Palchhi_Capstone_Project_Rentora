@@ -24,7 +24,7 @@ export const createTokenBooking = (bookingData) => async (dispatch) => {
   try {
     dispatch({ type: CREATE_TOKEN_BOOKING_REQUEST });
 
-    const { data } = await axiosInstance.post('/token-bookings', bookingData);
+    const { data } = await axiosInstance.post('/api/token-bookings', bookingData);
 
     dispatch({
       type: CREATE_TOKEN_BOOKING_SUCCESS,
@@ -43,7 +43,7 @@ export const getUserTokenBookings = () => async (dispatch) => {
   try {
     dispatch({ type: GET_USER_TOKEN_BOOKINGS_REQUEST });
 
-    const { data } = await axiosInstance.get('/token-bookings/my-bookings');
+    const { data } = await axiosInstance.get('/api/token-bookings/my-bookings');
 
     dispatch({
       type: GET_USER_TOKEN_BOOKINGS_SUCCESS,
@@ -61,7 +61,7 @@ export const getTokenBooking = (id) => async (dispatch) => {
   try {
     dispatch({ type: GET_TOKEN_BOOKING_REQUEST });
 
-    const { data } = await axiosInstance.get(`/token-bookings/${id}`);
+    const { data } = await axiosInstance.get(`/api/token-bookings/${id}`);
 
     dispatch({
       type: GET_TOKEN_BOOKING_SUCCESS,
@@ -79,7 +79,7 @@ export const updateTokenBookingStatus = (id, status) => async (dispatch) => {
   try {
     dispatch({ type: UPDATE_TOKEN_BOOKING_STATUS_REQUEST });
 
-    const { data } = await axiosInstance.patch(`/token-bookings/${id}/status`, { status });
+    const { data } = await axiosInstance.patch(`/api/token-bookings/${id}/status`, { status });
 
     dispatch({
       type: UPDATE_TOKEN_BOOKING_STATUS_SUCCESS,
@@ -103,7 +103,7 @@ export const cancelTokenBooking = (id, cancellationReason) => async (dispatch) =
       throw new Error('No authentication token found');
     }
 
-    const response = await axiosInstance.post(`/token-bookings/${id}/cancel`, {
+    const response = await axiosInstance.post(`/api/token-bookings/${id}/cancel`, {
       cancellationReason
     });
 
@@ -128,7 +128,7 @@ export const uploadPaymentProof = (id, formData) => async (dispatch) => {
     dispatch({ type: UPLOAD_PAYMENT_PROOF_REQUEST });
 
     const { data } = await axiosInstance.post(
-      `/token-bookings/${id}/payment-proof`,
+      `/api/token-bookings/${id}/payment-proof`,
       formData,
       {
         headers: {
@@ -145,7 +145,7 @@ export const uploadPaymentProof = (id, formData) => async (dispatch) => {
     });
 
     // Then fetch the updated booking to ensure we have the latest data
-    const updatedBooking = await axiosInstance.get(`/token-bookings/${id}`);
+    const updatedBooking = await axiosInstance.get(`/api/token-bookings/${id}`);
     dispatch({
       type: GET_TOKEN_BOOKING_SUCCESS,
       payload: updatedBooking.data.data
