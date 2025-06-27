@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  VITE_API_URL = "https://s63-palchhi-capstone-project-rentora.onrender.com"
 
 [[redirects]]
   from = "/*"
