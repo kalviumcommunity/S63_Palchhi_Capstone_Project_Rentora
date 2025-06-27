@@ -158,15 +158,15 @@ const limiter = rateLimit({
   }
 });
 
-// Create a more lenient rate limiter for auth routes
-const authLimiter = rateLimit({
+// Create a more lenient rate limiter for public routes
+const publicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes for auth routes
-  message: 'Too many authentication attempts, please try again later.',
+  max: 200, // 200 requests per 15 minutes for public routes
+  message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    // Use IP address for auth routes
+    // Use IP address for public routes
     return req.ip;
   }
 });
@@ -175,9 +175,12 @@ const authLimiter = rateLimit({
 app.use('/api/', (req, res, next) => {
   if (req.path.startsWith('/uploads/')) {
     next();
-  } else if (req.path.startsWith('/auth/')) {
-    // Use more lenient rate limiting for auth routes
-    authLimiter(req, res, next);
+  } else if (req.path.startsWith('/auth/') || 
+             req.path.startsWith('/contact') || 
+             req.path.startsWith('/reviews') ||
+             req.path === '/contact') {
+    // Use more lenient rate limiting for public routes
+    publicLimiter(req, res, next);
   } else {
     limiter(req, res, next);
   }
