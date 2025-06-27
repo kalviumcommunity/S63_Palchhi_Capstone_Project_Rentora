@@ -87,24 +87,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if the origin is in the allowed list
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      return allowedOrigin === origin || origin.includes('netlify.app');
-    });
-
-    if (!isAllowed) {
-      console.log('CORS blocked request from origin:', origin);
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    
-    console.log('CORS allowed request from origin:', origin);
-    return callback(null, true);
-  },
+  origin: '*', // Allow all origins for now to debug the issue
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -115,10 +98,7 @@ app.use(cors({
     'Cache-Control',
     'Pragma',
     'If-Modified-Since',
-    'If-None-Match',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Origin'
+    'If-None-Match'
   ],
   exposedHeaders: ['Content-Range', 'X-Content-Range', 'ETag', 'Last-Modified'],
   maxAge: 86400 // 24 hours
@@ -157,27 +137,35 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Handle OPTIONS preflight requests
 app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (origin && (allowedOrigins.includes(origin) || origin.includes('netlify.app'))) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.status(200).end();
-  } else {
-    res.status(403).end();
-  }
+  // Log the request for debugging
+  console.log('OPTIONS request received:', {
+    origin: req.headers.origin,
+    path: req.path,
+    method: req.method
+  });
+  
+  // Set permissive CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.status(200).end();
 });
 
 // Add CORS headers to all responses
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && (allowedOrigins.includes(origin) || origin.includes('netlify.app'))) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
+  // Log the request for debugging
+  if (req.method !== 'OPTIONS') {
+    console.log('Request received:', {
+      origin: req.headers.origin,
+      path: req.path,
+      method: req.method
+    });
   }
+  
+  // Set permissive CORS headers
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   next();
 });
 
@@ -210,7 +198,7 @@ app.use('/api/', (req, res, next) => {
 // Database connection
 connectDB();
 
-// Routes
+// Routes with /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', protect, wishlistRoutes);
 app.use('/api', listingRoutes);
@@ -219,6 +207,14 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/token-bookings', tokenBookingRoutes);
+
+// Routes without /api prefix (for backward compatibility)
+app.use('/auth', authRoutes);
+app.use('/wishlist', protect, wishlistRoutes);
+app.use('/contact', contactRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/token-bookings', tokenBookingRoutes);
 
 // Get absolute paths for upload directories
 const projectRoot = __dirname;
@@ -367,6 +363,7 @@ app.use((req, res, next) => {
 
 // Serve static files from the public directory
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/test', express.static(path.join(__dirname, 'public')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -374,6 +371,27 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
+  });
+});
+
+// CORS test endpoint
+app.get('/cors-test', (req, res) => {
+  // Log the request headers for debugging
+  console.log('CORS test request headers:', req.headers);
+  
+  // Set CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  res.status(200).json({
+    success: true,
+    message: 'CORS is working!',
+    headers: {
+      origin: req.headers.origin,
+      host: req.headers.host,
+      referer: req.headers.referer
+    }
   });
 });
 
