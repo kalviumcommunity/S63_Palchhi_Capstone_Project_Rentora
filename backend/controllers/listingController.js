@@ -1,6 +1,7 @@
 const Listing = require('../models/Listing');
 const { listingCache } = require('../utils/cache');
 const mongoose = require('mongoose');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 exports.createListing = async (req, res) => {
   try {
@@ -17,6 +18,25 @@ exports.createListing = async (req, res) => {
       videos 
     } = req.body;
 
+    // Handle file uploads if present
+    let listingImages = images || [];
+    let listingVideos = videos || [];
+
+    // If files were uploaded via multer, upload them to Cloudinary
+    if (req.files) {
+      const { uploadMultipleToCloudinary } = require('../config/cloudinary');
+      
+      if (req.files.images) {
+        const imageResults = await uploadMultipleToCloudinary(req.files.images, 'rentora/listing-images');
+        listingImages = imageResults.map(result => result.secure_url);
+      }
+      
+      if (req.files.videos) {
+        const videoResults = await uploadMultipleToCloudinary(req.files.videos, 'rentora/listing-videos');
+        listingVideos = videoResults.map(result => result.secure_url);
+      }
+    }
+
     const newListing = new Listing({
       title,
       description,
@@ -26,7 +46,8 @@ exports.createListing = async (req, res) => {
       bedrooms,
       bathrooms,
       squareFeet,
-      images,
+      images: listingImages,
+      videos: listingVideos,
       isAvailable: true,
       createdBy: req.user._id 
     });
@@ -464,6 +485,42 @@ exports.deleteListing = async (req, res) => {
         success: false,
         message: 'Not authorized to delete this listing'
       });
+    }
+
+    // Delete images and videos from Cloudinary before deleting the listing
+    try {
+      if (listing.images && listing.images.length > 0) {
+        for (const imageUrl of listing.images) {
+          if (imageUrl.includes('cloudinary')) {
+            // Extract public ID from Cloudinary URL
+            const urlParts = imageUrl.split('/');
+            const publicId = urlParts[urlParts.length - 1].split('.')[0];
+            const folder = 'rentora/listing-images';
+            const fullPublicId = `${folder}/${publicId}`;
+            
+            await deleteFromCloudinary(fullPublicId);
+            console.log('Deleted image from Cloudinary:', fullPublicId);
+          }
+        }
+      }
+      
+      if (listing.videos && listing.videos.length > 0) {
+        for (const videoUrl of listing.videos) {
+          if (videoUrl.includes('cloudinary')) {
+            // Extract public ID from Cloudinary URL
+            const urlParts = videoUrl.split('/');
+            const publicId = urlParts[urlParts.length - 1].split('.')[0];
+            const folder = 'rentora/listing-videos';
+            const fullPublicId = `${folder}/${publicId}`;
+            
+            await deleteFromCloudinary(fullPublicId);
+            console.log('Deleted video from Cloudinary:', fullPublicId);
+          }
+        }
+      }
+    } catch (cloudinaryError) {
+      console.error('Error deleting files from Cloudinary:', cloudinaryError);
+      // Continue with listing deletion even if Cloudinary cleanup fails
     }
 
     await Listing.findByIdAndDelete(listingId);

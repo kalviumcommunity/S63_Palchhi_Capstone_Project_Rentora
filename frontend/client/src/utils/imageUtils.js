@@ -75,51 +75,104 @@ export const isGoogleProfileImage = (url) => {
    */
   export const DEFAULT_AVATAR_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=';
 
-export const getImageUrl = (imagePath) => {
-  if (!imagePath) return DEFAULT_IMAGE_PATHS.PROPERTY;
-  
-  // Generate a cache key that includes the path and a flag if it's a profile image
-  const isProfileImage = imagePath.includes('profile-images/');
-  const cacheKey = `${imagePath}_${isProfileImage ? 'profile' : 'property'}`;
-  
-  // Check cache first, but don't use cache if we're having issues
-  if (imageUrlCache.has(cacheKey) && !window.DISABLE_IMAGE_CACHE) {
-    return imageUrlCache.get(cacheKey);
+// Utility functions for handling image URLs
+
+/**
+ * Get the proper image URL, handling both local and Cloudinary URLs
+ * @param {string} imagePath - The image path or URL
+ * @param {string} defaultImage - Default image path
+ * @returns {string} - The complete image URL
+ */
+export const getImageUrl = (imagePath, defaultImage = '/default-property.jpg') => {
+  if (!imagePath) {
+    return defaultImage;
   }
-  
-  let url;
-  
-  // If it's already a full URL
-  if (imagePath.startsWith('http')) {
-    url = imagePath;
-  } else {
-    // Normalize path - ensure it starts with '/'
-    const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    
-    // Get the API URL from environment or use default
-    const baseUrl = API_URL || 'http://localhost:8000';
-    
-    // Create the full URL with the API base
-    url = `${baseUrl}${normalizedPath}`;
-    
-    // Add a cache-busting parameter
-    const timestamp = Date.now();
-    url = `${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`;
+
+  // If it's already a full URL (Cloudinary or external), return as is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
   }
+
+  // If it's a local path, construct the full URL
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   
-  // Only cache if not disabled
-  if (!window.DISABLE_IMAGE_CACHE) {
-    // Cache the URL
-    imageUrlCache.set(cacheKey, url);
-    
-    // Implement cache size limit
-    if (imageUrlCache.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
-      const firstKey = imageUrlCache.keys().next().value;
-      imageUrlCache.delete(firstKey);
-    }
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+  
+  return `${backendUrl}/${cleanPath}`;
+};
+
+/**
+ * Get profile image URL
+ * @param {string} profileImage - Profile image path or URL
+ * @returns {string} - The complete profile image URL
+ */
+export const getProfileImageUrl = (profileImage) => {
+  return getImageUrl(profileImage, '/uploads/images/default-avatar.jpg');
+};
+
+/**
+ * Get property image URL
+ * @param {string} propertyImage - Property image path or URL
+ * @returns {string} - The complete property image URL
+ */
+export const getPropertyImageUrl = (propertyImage) => {
+  return getImageUrl(propertyImage, '/uploads/images/default-property.jpg');
+};
+
+/**
+ * Get payment proof URL
+ * @param {string} paymentProof - Payment proof path or URL
+ * @returns {string} - The complete payment proof URL
+ */
+export const getPaymentProofUrl = (paymentProof) => {
+  return getImageUrl(paymentProof, '/uploads/images/default-property.jpg');
+};
+
+/**
+ * Check if an image URL is from Cloudinary
+ * @param {string} imageUrl - The image URL to check
+ * @returns {boolean} - True if it's a Cloudinary URL
+ */
+export const isCloudinaryUrl = (imageUrl) => {
+  return imageUrl && imageUrl.includes('cloudinary');
+};
+
+/**
+ * Get optimized image URL for Cloudinary images
+ * @param {string} imageUrl - The original Cloudinary URL
+ * @param {Object} options - Transformation options
+ * @returns {string} - The optimized image URL
+ */
+export const getOptimizedImageUrl = (imageUrl, options = {}) => {
+  if (!isCloudinaryUrl(imageUrl)) {
+    return imageUrl;
   }
+
+  // Default optimization options
+  const defaultOptions = {
+    width: 800,
+    height: 600,
+    crop: 'fill',
+    quality: 'auto:good'
+  };
+
+  const finalOptions = { ...defaultOptions, ...options };
   
-  return url;
+  // For Cloudinary URLs, we can add transformation parameters
+  // This is a simplified approach - in production you might want to use Cloudinary's URL transformation API
+  return imageUrl;
+};
+
+/**
+ * Get thumbnail URL for images
+ * @param {string} imageUrl - The original image URL
+ * @param {number} width - Thumbnail width
+ * @param {number} height - Thumbnail height
+ * @returns {string} - The thumbnail URL
+ */
+export const getThumbnailUrl = (imageUrl, width = 300, height = 200) => {
+  return getOptimizedImageUrl(imageUrl, { width, height, crop: 'fill' });
 };
 
 export const formatImageUrl = (imagePath) => {

@@ -243,15 +243,16 @@ exports.uploadPaymentProof = async (req, res) => {
       });
     }
 
-    // Convert absolute path to relative path
-    const relativePath = req.file.path.replace(/\\/g, '/').split('public/').pop();
-    console.log('File path conversion:', {
-      original: req.file.path,
-      relative: relativePath
+    // Cloudinary automatically handles the upload and returns the URL
+    const paymentProofUrl = req.file.path; // Cloudinary URL
+    
+    console.log('Payment proof uploaded to Cloudinary:', {
+      cloudinaryUrl: paymentProofUrl,
+      publicId: req.file.filename
     });
 
     // Update booking with payment proof
-    booking.paymentProof = relativePath;
+    booking.paymentProof = paymentProofUrl;
     booking.paymentStatus = 'pending';
     await booking.save();
 
