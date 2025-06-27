@@ -38,7 +38,7 @@ export const getUserNotifications = async (page = 1, limit = 10, unreadOnly = fa
 
 export const getNotifications = async () => {
   try {
-    const response = await axiosInstance.get('/api/notifications');
+    const response = await axiosInstance.get('/notifications');
     return response.data.data || [];
   } catch (error) {
     console.error('Error fetching notifications:', error);
