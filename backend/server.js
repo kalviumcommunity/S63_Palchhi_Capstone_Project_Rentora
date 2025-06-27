@@ -23,7 +23,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:3000",
+      "https://magical-otter-cbb01e.netlify.app",
+      "https://s63-palchhi-capstone-project-rentora.onrender.com"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -72,11 +76,15 @@ io.on('connection', (socket) => {
 });
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-  process.env.CLIENT_URL,
-  'http://localhost:3000'
-].filter(Boolean);
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.CLIENT_URL,
+      'http://localhost:3000',
+      'https://magical-otter-cbb01e.netlify.app',
+      'https://s63-palchhi-capstone-project-rentora.onrender.com'
+    ].filter(Boolean);
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -85,7 +93,7 @@ app.use(cors({
     
     // Check if the origin is in the allowed list
     const isAllowed = allowedOrigins.some(allowedOrigin => {
-      return allowedOrigin === origin;
+      return allowedOrigin === origin || origin.includes('netlify.app');
     });
 
     if (!isAllowed) {
@@ -124,7 +132,15 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:3000", "ws:", "wss:"],
+      connectSrc: [
+        "'self'", 
+        "http://localhost:8000", 
+        "http://localhost:3000", 
+        "https://magical-otter-cbb01e.netlify.app",
+        "https://s63-palchhi-capstone-project-rentora.onrender.com",
+        "ws:", 
+        "wss:"
+      ],
       mediaSrc: ["'self'", "data:", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -138,6 +154,32 @@ app.use(helmet({
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Handle OPTIONS preflight requests
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin.includes('netlify.app'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.status(200).end();
+  } else {
+    res.status(403).end();
+  }
+});
+
+// Add CORS headers to all responses
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin.includes('netlify.app'))) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
