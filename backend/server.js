@@ -23,13 +23,15 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "https://magical-otter-cbb01e.netlify.app",
-      "https://s63-palchhi-capstone-project-rentora.onrender.com"
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true
+    credentials: true,
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With', 
+      'Accept'
+    ]
   }
 });
 
@@ -87,7 +89,19 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ].filter(Boolean);
 
 app.use(cors({
-  origin: '*', // Allow all origins for now to debug the issue
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // For debugging, allow all origins but log those that aren't in the allowed list
+      console.warn(`Origin ${origin} not in allowed list: ${allowedOrigins.join(', ')}`);
+      callback(null, true);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -144,10 +158,23 @@ app.options('*', (req, res) => {
     method: req.method
   });
   
-  // Set permissive CORS headers
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in the allowed list
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // For debugging, allow all origins but log those that aren't in the allowed list
+    if (origin) {
+      console.warn(`Origin ${origin} not in allowed list: ${allowedOrigins.join(', ')}`);
+    }
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Cache-Control, Pragma, If-Modified-Since, If-None-Match');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
   res.status(200).end();
 });
 
@@ -162,10 +189,22 @@ app.use((req, res, next) => {
     });
   }
   
-  // Set permissive CORS headers
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  
+  // Check if the origin is in the allowed list
+  if (origin && allowedOrigins.indexOf(origin) !== -1) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // For debugging, allow all origins but log those that aren't in the allowed list
+    if (origin) {
+      console.warn(`Origin ${origin} not in allowed list: ${allowedOrigins.join(', ')}`);
+    }
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Cache-Control, Pragma, If-Modified-Since, If-None-Match');
   next();
 });
 
