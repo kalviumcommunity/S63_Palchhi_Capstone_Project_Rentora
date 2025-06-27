@@ -2,7 +2,7 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const getCurrentUser = async () => {
   try {
-    const response = await axiosInstance.get('/auth/me');
+    const response = await axiosInstance.get('/api/auth/me');
     return {
       success: true,
       user: response.data.data
@@ -23,7 +23,7 @@ export const updateUserProfile = async (userId, userData) => {
       Object.entries(userData).filter(([_, value]) => value != null)
     );
 
-    const response = await axiosInstance.put(`/auth/users/${userId}`, cleanData);
+    const response = await axiosInstance.put(`/api/auth/users/${userId}`, cleanData);
     
     // Update the token if a new one is provided
     if (response.data.token) {
@@ -55,7 +55,7 @@ export const uploadProfileImage = async (userId, formData, onProgress) => {
       userId = currentUser._id;
     }
 
-    const response = await axiosInstance.put(`/auth/users/${userId}`, formData, {
+    const response = await axiosInstance.put(`/api/auth/users/${userId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
@@ -93,7 +93,7 @@ export const uploadProfileImage = async (userId, formData, onProgress) => {
 
 export const deleteAccount = async (userId) => {
   try {
-    const response = await axiosInstance.delete(`/auth/users/${userId}`, {
+    const response = await axiosInstance.delete(`/api/auth/users/${userId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -107,7 +107,7 @@ export const deleteAccount = async (userId) => {
 
 export const deleteListing = async (listingId) => {
   try {
-    const response = await axiosInstance.delete(`/listings/${listingId}`);
+    const response = await axiosInstance.delete(`/api/listings/${listingId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting listing:', error);
@@ -117,7 +117,7 @@ export const deleteListing = async (listingId) => {
 
 export const updateNotificationPreferences = async (userId, preferences) => {
   try {
-    const response = await axiosInstance.put(`/auth/users/${userId}/preferences`, preferences);
+    const response = await axiosInstance.put(`/api/auth/users/${userId}/preferences`, preferences);
     return {
       success: true,
       data: response.data.data,
@@ -134,7 +134,7 @@ export const updateNotificationPreferences = async (userId, preferences) => {
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await axiosInstance.post('/auth/login', { email, password });
+    const response = await axiosInstance.post('/api/auth/login', { email, password });
     return {
       success: true,
       data: response.data.data

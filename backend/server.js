@@ -147,8 +147,10 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for authenticated users and image requests
-    return req.user !== undefined || req.path.startsWith('/uploads/');
+    // Skip rate limiting for authenticated users, image requests, and health checks
+    return req.user !== undefined || 
+           req.path.startsWith('/uploads/') || 
+           req.path === '/health';
   },
   keyGenerator: (req) => {
     // Use user ID as key if authenticated, otherwise use IP
@@ -156,10 +158,26 @@ const limiter = rateLimit({
   }
 });
 
+// Create a more lenient rate limiter for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per 15 minutes for auth routes
+  message: 'Too many authentication attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Use IP address for auth routes
+    return req.ip;
+  }
+});
+
 // Apply rate limiting to all routes except uploads
 app.use('/api/', (req, res, next) => {
   if (req.path.startsWith('/uploads/')) {
     next();
+  } else if (req.path.startsWith('/auth/')) {
+    // Use more lenient rate limiting for auth routes
+    authLimiter(req, res, next);
   } else {
     limiter(req, res, next);
   }
