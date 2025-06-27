@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+const { uploadPaymentProof: cloudinaryUploadPaymentProof } = require('../config/cloudinary');
 const {
   getUserTokenBookings,
   getTokenBooking,
@@ -30,10 +30,10 @@ router.route('/:id')
 // Cancel booking route
 router.post('/:id/cancel', cancelTokenBooking);
 
-// Payment proof upload route with file upload middleware
+// Payment proof upload route with Cloudinary middleware
 router.post(
   '/:bookingId/payment-proof',
-  upload.single('paymentProof'),
+  cloudinaryUploadPaymentProof.single('paymentProof'),
   uploadPaymentProof
 );
 

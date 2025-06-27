@@ -9,6 +9,7 @@ const Review = require('../models/Review');
 const Notification = require('../models/Notification');
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
+const { deleteFromCloudinary } = require('../config/cloudinary');
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -214,39 +215,13 @@ exports.updateUser = async (req, res) => {
     // Handle file upload if present
     if (req.file) {
       try {
-        // Ensure the upload directory exists
-        const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'profile-images');
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        // Generate a unique filename
-        const timestamp = Date.now();
-        const randomNum = Math.round(Math.random() * 1E9);
-        const ext = path.extname(req.file.originalname);
-        const filename = `profile-${timestamp}-${randomNum}${ext}`;
+        // Cloudinary automatically handles the upload and returns the URL
+        // The file is already uploaded to Cloudinary by the multer middleware
+        updateData.profileImage = req.file.path; // Cloudinary URL
         
-        // Move the file to the correct location
-        const targetPath = path.join(uploadDir, filename);
-        
-        // Ensure the source file exists before moving
-        if (!fs.existsSync(req.file.path)) {
-          throw new Error('Source file not found');
-        }
-        
-        // Move the file
-        fs.renameSync(req.file.path, targetPath);
-        
-        // Set the profile image path with forward slashes
-        const relativePath = path.relative(path.join(__dirname, '..', 'public'), targetPath)
-          .replace(/\\/g, '/');
-        updateData.profileImage = `/${relativePath}`;
-        
-        console.log('Profile image update:', {
-          originalPath: req.file.path,
-          targetPath: targetPath,
-          profileImagePath: updateData.profileImage,
-          relativePath: relativePath
+        console.log('Profile image updated to Cloudinary:', {
+          cloudinaryUrl: req.file.path,
+          publicId: req.file.filename
         });
       } catch (error) {
         console.error('Error handling profile image upload:', error);
@@ -265,6 +240,23 @@ exports.updateUser = async (req, res) => {
         success: false, 
         message: 'User not found' 
       });
+    }
+
+    // If updating profile image, delete old image from Cloudinary
+    if (req.file && user.profileImage && user.profileImage.includes('cloudinary')) {
+      try {
+        // Extract public ID from Cloudinary URL
+        const urlParts = user.profileImage.split('/');
+        const publicId = urlParts[urlParts.length - 1].split('.')[0];
+        const folder = 'rentora/profile-images';
+        const fullPublicId = `${folder}/${publicId}`;
+        
+        await deleteFromCloudinary(fullPublicId);
+        console.log('Old profile image deleted from Cloudinary:', fullPublicId);
+      } catch (deleteError) {
+        console.error('Error deleting old profile image:', deleteError);
+        // Don't fail the request if deletion fails
+      }
     }
 
     // Update user fields
