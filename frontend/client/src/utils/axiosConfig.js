@@ -3,7 +3,7 @@ import { API_URL } from '../config';
 
 // Create axios instance with default config
 const axiosInstance = axios.create({
-  baseURL: `${import.meta.env.VITE_API_URL}`,
+  baseURL: `${import.meta.env.VITE_API_URL}/api`,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ axiosInstance.interceptors.response.use(
           throw new Error('No refresh token available');
         }
         
-        const response = await axios.post(`${API_URL}/api/auth/refresh-token`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/refresh-token`, {
           refreshToken
         });
         

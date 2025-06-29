@@ -22,7 +22,7 @@ export const uploadPaymentProofFailure = (error) => ({
 });
 
 // Thunk Action Creator
-export const uploadPaymentProof = (bookingId, formData) => async (dispatch) => {
+export const uploadPaymentProof = async (bookingId, formData, onProgress) => {
   try {
     dispatch(uploadPaymentProofRequest());
 
@@ -36,11 +36,11 @@ export const uploadPaymentProof = (bookingId, formData) => async (dispatch) => {
     console.log('Uploading payment proof:', {
       bookingId,
       formData: Object.fromEntries(formData.entries()),
-      url: `${API_URL}/api/token-bookings/${bookingId}/payment-proof`
+      url: `${API_URL}/token-bookings/${bookingId}/payment-proof`
     });
 
     const response = await axiosInstance.post(
-      `/api/token-bookings/${bookingId}/payment-proof`,
+      `/token-bookings/${bookingId}/payment-proof`,
       formData,
       {
         headers: {
@@ -49,7 +49,11 @@ export const uploadPaymentProof = (bookingId, formData) => async (dispatch) => {
           'Authorization': `Bearer ${token}`
         },
         timeout: 30000,
-        validateStatus: (status) => status >= 200 && status < 300
+        validateStatus: (status) => status >= 200 && status < 300,
+        onUploadProgress: onProgress ? (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        } : undefined
       }
     );
 

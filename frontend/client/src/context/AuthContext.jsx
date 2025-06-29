@@ -83,18 +83,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('AuthContext: Starting login process');
       const response = await loginUser(email, password);
+      console.log('AuthContext: Login response received:', response);
+      
       if (response.success) {
         const { user, token } = response.data;
+        console.log('AuthContext: Setting user and token');
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user);
         return { success: true };
       } else {
+        console.error('AuthContext: Login failed:', response.message);
         return { success: false, message: response.message };
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('AuthContext: Login error:', error);
       return { success: false, message: error.message || 'Login failed' };
     }
   };
