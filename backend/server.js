@@ -72,53 +72,24 @@ io.on('connection', (socket) => {
 });
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-  process.env.CLIENT_URL,
-  'http://localhost:3000',
-  'https://magical-otter-cbb01e.netlify.app', // Add your Netlify domain
-  'https://*.netlify.app' // Allow all Netlify subdomains
-].filter(Boolean);
-
-// Log allowed origins for debugging
-console.log('CORS Allowed Origins:', allowedOrigins);
-
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('CORS: Allowing request with no origin');
       return callback(null, true);
     }
     
-    // Check if the origin is in the allowed list
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      // Handle wildcard domains
-      if (allowedOrigin.includes('*')) {
-        const pattern = allowedOrigin.replace('*', '.*');
-        const regex = new RegExp(pattern);
-        const matches = regex.test(origin);
-        if (matches) {
-          console.log(`CORS: Origin ${origin} matches pattern ${allowedOrigin}`);
-        }
-        return matches;
-      }
-      const matches = allowedOrigin === origin;
-      if (matches) {
-        console.log(`CORS: Origin ${origin} exactly matches ${allowedOrigin}`);
-      }
-      return matches;
-    });
-
-    if (!isAllowed) {
-      console.log('CORS blocked request from origin:', origin);
-      console.log('Allowed origins:', allowedOrigins);
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
+    // Simple origin checking
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://magical-otter-cbb01e.netlify.app'
+    ];
     
-    console.log('CORS allowed request from origin:', origin);
-    return callback(null, true);
+    if (allowedOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.endsWith('.onrender.com')) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'), false);
+    }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
@@ -126,17 +97,8 @@ app.use(cors({
     'Content-Type', 
     'Authorization', 
     'X-Requested-With', 
-    'Accept',
-    'Cache-Control',
-    'Pragma',
-    'If-Modified-Since',
-    'If-None-Match',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Origin'
-  ],
-  exposedHeaders: ['Content-Range', 'X-Content-Range', 'ETag', 'Last-Modified'],
-  maxAge: 86400 // 24 hours
+    'Accept'
+  ]
 }));
 
 // Handle CORS preflight requests
@@ -201,10 +163,10 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', protect, wishlistRoutes);
-app.use('/api', listingRoutes);
+app.use('/api/listings', listingRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api', chatRoutes);
+app.use('/api/chats', chatRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/token-bookings', tokenBookingRoutes);
 
@@ -361,13 +323,15 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Error:', err.message);
+  console.error('Stack:', err.stack);
   
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
@@ -381,6 +345,7 @@ app.use((err, req, res, next) => {
 
 // Handle 404 routes
 app.use((req, res) => {
+  console.log('404 - Route not found:', req.method, req.path);
   res.status(404).json({
     success: false,
     message: 'Route not found'

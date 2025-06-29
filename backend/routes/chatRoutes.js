@@ -11,21 +11,21 @@ const {
 } = require('../controllers/chatController');
 
 // Get all chats for the current user
-router.get('/chats', protect, getUserChats);
+router.get('/', protect, getUserChats);
 
 // Get a specific chat by ID
-router.get('/chats/:id', protect, getChatById);
+router.get('/:id', protect, getChatById);
 
 // Create a new chat
-router.post('/chats', protect, createChat);
+router.post('/', protect, createChat);
 
 // Send a message in a chat
-router.post('/chats/:chatId/messages', protect, sendMessage);
+router.post('/:chatId/messages', protect, sendMessage);
 
 // Mark messages as read in a chat
-router.put('/chats/:chatId/read', protect, markMessagesAsRead);
+router.put('/:chatId/read', protect, markMessagesAsRead);
 
 // Delete a chat
-router.delete('/chats/:chatId', protect, deleteChat);
+router.delete('/:chatId', protect, deleteChat);
 
 module.exports = router;

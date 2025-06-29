@@ -22,24 +22,24 @@ const uploadFields = uploadListingMedia.fields([
 ]);
 
 // Public routes
-router.get('/listings', getAllListings);
-router.get('/listings/:id', getListingById);
+router.get('/', getAllListings);
+router.get('/:id', getListingById);
 
 // Protected routes
-router.post('/listings', 
+router.post('/', 
   protect, 
   uploadFields, 
   createListing
 );
 
-router.put('/listings/:id', 
+router.put('/:id', 
   protect, 
   authorize(['seller', 'admin']),
   uploadFields,
   updateListing
 );
 
-router.delete('/listings/:id', 
+router.delete('/:id', 
   protect, 
   authorize(['seller', 'admin']),
   deleteListing
@@ -50,7 +50,7 @@ router.get('/my-listings',
   getMyListings
 );
 
-router.post('/listings/upload-media',
+router.post('/upload-media',
   protect,
   uploadFields,
   async (req, res) => {

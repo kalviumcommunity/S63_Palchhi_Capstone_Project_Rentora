@@ -26,6 +26,9 @@ export const getNotifications = async (page = 1, limit = 10, filters = {}) => {
   }
 };
 
+// Alias for backward compatibility
+export const getUserNotifications = getNotifications;
+
 export const getAllNotifications = async () => {
   try {
     const response = await axiosInstance.get('/notifications');
