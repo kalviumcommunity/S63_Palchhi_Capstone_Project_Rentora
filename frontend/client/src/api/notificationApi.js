@@ -2,33 +2,23 @@ import axiosInstance from '../utils/axiosConfig';
 
 export const getUnreadCount = async () => {
   try {
-    const response = await axiosInstance.get('/api/notifications/unread-count');
-    return {
-      success: true,
-      count: response.data.count
-    };
+    const response = await axiosInstance.get('/notifications/unread-count');
+    return response.data;
   } catch (error) {
-    console.error('Error fetching unread notifications count:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to fetch unread count'
-    };
+    console.error('Error fetching unread count:', error);
+    throw error;
   }
 };
 
-export const getUserNotifications = async (page = 1, limit = 10, unreadOnly = false, type = undefined) => {
+export const getNotifications = async (page = 1, limit = 10, filters = {}) => {
   try {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
-      unreadOnly: unreadOnly.toString()
+      ...filters
     });
-
-    if (type) {
-      params.append('type', type);
-    }
-
-    const response = await axiosInstance.get(`/api/notifications?${params.toString()}`);
+    
+    const response = await axiosInstance.get(`/notifications?${params.toString()}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -36,19 +26,19 @@ export const getUserNotifications = async (page = 1, limit = 10, unreadOnly = fa
   }
 };
 
-export const getNotifications = async () => {
+export const getAllNotifications = async () => {
   try {
-    const response = await axiosInstance.get('/api/notifications');
-    return response.data.data || [];
+    const response = await axiosInstance.get('/notifications');
+    return response.data;
   } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return [];
+    console.error('Error fetching all notifications:', error);
+    throw error;
   }
 };
 
 export const markAsRead = async (notificationId) => {
   try {
-    const response = await axiosInstance.put(`/api/notifications/${notificationId}/read`);
+    const response = await axiosInstance.put(`/notifications/${notificationId}/read`);
     return response.data;
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -58,7 +48,7 @@ export const markAsRead = async (notificationId) => {
 
 export const markAllAsRead = async () => {
   try {
-    const response = await axiosInstance.put('/api/notifications/mark-all-read');
+    const response = await axiosInstance.put('/notifications/mark-all-read');
     return response.data;
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -68,7 +58,7 @@ export const markAllAsRead = async () => {
 
 export const deleteNotification = async (notificationId) => {
   try {
-    const response = await axiosInstance.delete(`/api/notifications/${notificationId}`);
+    const response = await axiosInstance.delete(`/notifications/${notificationId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting notification:', error);
