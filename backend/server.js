@@ -23,7 +23,11 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173", 
+      process.env.FRONTEND_URL || "http://localhost:5173",
+      "https://magical-otter-cbb01e.netlify.app"
+    ],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -74,8 +78,9 @@ io.on('connection', (socket) => {
 // CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
-  process.env.CLIENT_URL,
-  'http://localhost:3000'
+  process.env.CLIENT_URL || 'http://localhost:3000',
+  'http://localhost:5173',
+  'https://*.netlify.app'
 ].filter(Boolean);
 
 app.use(cors({
@@ -85,6 +90,11 @@ app.use(cors({
     
     // Check if the origin is in the allowed list
     const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        // Handle wildcard domains
+        const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
+        return pattern.test(origin);
+      }
       return allowedOrigin === origin;
     });
 
