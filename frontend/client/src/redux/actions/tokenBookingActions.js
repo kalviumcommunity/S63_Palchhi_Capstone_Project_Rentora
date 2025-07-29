@@ -1,14 +1,15 @@
 import axiosInstance from '../../utils/axiosConfig';
+import { API_URL } from '../../config';
 import {
   CREATE_TOKEN_BOOKING_REQUEST,
   CREATE_TOKEN_BOOKING_SUCCESS,
   CREATE_TOKEN_BOOKING_FAIL,
-  GET_USER_TOKEN_BOOKINGS_REQUEST,
-  GET_USER_TOKEN_BOOKINGS_SUCCESS,
-  GET_USER_TOKEN_BOOKINGS_FAIL,
-  GET_TOKEN_BOOKING_REQUEST,
-  GET_TOKEN_BOOKING_SUCCESS,
-  GET_TOKEN_BOOKING_FAIL,
+  GET_TOKEN_BOOKINGS_REQUEST,
+  GET_TOKEN_BOOKINGS_SUCCESS,
+  GET_TOKEN_BOOKINGS_FAIL,
+  GET_TOKEN_BOOKING_DETAILS_REQUEST,
+  GET_TOKEN_BOOKING_DETAILS_SUCCESS,
+  GET_TOKEN_BOOKING_DETAILS_FAIL,
   UPDATE_TOKEN_BOOKING_STATUS_REQUEST,
   UPDATE_TOKEN_BOOKING_STATUS_SUCCESS,
   UPDATE_TOKEN_BOOKING_STATUS_FAIL,
@@ -17,7 +18,8 @@ import {
   CANCEL_TOKEN_BOOKING_FAIL,
   UPLOAD_PAYMENT_PROOF_REQUEST,
   UPLOAD_PAYMENT_PROOF_SUCCESS,
-  UPLOAD_PAYMENT_PROOF_FAIL
+  UPLOAD_PAYMENT_PROOF_FAIL,
+  CLEAR_ERRORS
 } from '../constants/tokenBookingConstants';
 
 export const createTokenBooking = (bookingData) => async (dispatch) => {
@@ -28,50 +30,58 @@ export const createTokenBooking = (bookingData) => async (dispatch) => {
 
     dispatch({
       type: CREATE_TOKEN_BOOKING_SUCCESS,
-      payload: data.data
+      payload: data
     });
+
+    return data;
   } catch (error) {
     dispatch({
       type: CREATE_TOKEN_BOOKING_FAIL,
-      payload: error.response?.data?.message || 'Error creating token booking'
+      payload: error.response?.data?.message || 'Failed to create booking'
     });
     throw error;
   }
 };
 
-export const getUserTokenBookings = () => async (dispatch) => {
+export const getTokenBookings = () => async (dispatch) => {
   try {
-    dispatch({ type: GET_USER_TOKEN_BOOKINGS_REQUEST });
+    dispatch({ type: GET_TOKEN_BOOKINGS_REQUEST });
 
     const { data } = await axiosInstance.get('/token-bookings/my-bookings');
 
     dispatch({
-      type: GET_USER_TOKEN_BOOKINGS_SUCCESS,
-      payload: data.data
+      type: GET_TOKEN_BOOKINGS_SUCCESS,
+      payload: data
     });
+
+    return data;
   } catch (error) {
     dispatch({
-      type: GET_USER_TOKEN_BOOKINGS_FAIL,
-      payload: error.response?.data?.message || 'Error fetching token bookings'
+      type: GET_TOKEN_BOOKINGS_FAIL,
+      payload: error.response?.data?.message || 'Failed to fetch bookings'
     });
+    throw error;
   }
 };
 
-export const getTokenBooking = (id) => async (dispatch) => {
+export const getTokenBookingDetails = (id) => async (dispatch) => {
   try {
-    dispatch({ type: GET_TOKEN_BOOKING_REQUEST });
+    dispatch({ type: GET_TOKEN_BOOKING_DETAILS_REQUEST });
 
     const { data } = await axiosInstance.get(`/token-bookings/${id}`);
 
     dispatch({
-      type: GET_TOKEN_BOOKING_SUCCESS,
-      payload: data.data
+      type: GET_TOKEN_BOOKING_DETAILS_SUCCESS,
+      payload: data
     });
+
+    return data;
   } catch (error) {
     dispatch({
-      type: GET_TOKEN_BOOKING_FAIL,
-      payload: error.response?.data?.message || 'Error fetching token booking'
+      type: GET_TOKEN_BOOKING_DETAILS_FAIL,
+      payload: error.response?.data?.message || 'Failed to fetch booking details'
     });
+    throw error;
   }
 };
 
@@ -83,38 +93,34 @@ export const updateTokenBookingStatus = (id, status) => async (dispatch) => {
 
     dispatch({
       type: UPDATE_TOKEN_BOOKING_STATUS_SUCCESS,
-      payload: data.data
+      payload: data
     });
+
+    return data;
   } catch (error) {
     dispatch({
       type: UPDATE_TOKEN_BOOKING_STATUS_FAIL,
-      payload: error.response?.data?.message || 'Error updating token booking status'
+      payload: error.response?.data?.message || 'Failed to update booking status'
     });
     throw error;
   }
 };
 
-export const cancelTokenBooking = (id, cancellationReason) => async (dispatch) => {
+export const cancelTokenBooking = (id, reason) => async (dispatch) => {
   try {
     dispatch({ type: CANCEL_TOKEN_BOOKING_REQUEST });
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
     const response = await axiosInstance.post(`/token-bookings/${id}/cancel`, {
-      cancellationReason
+      reason
     });
 
     dispatch({
       type: CANCEL_TOKEN_BOOKING_SUCCESS,
-      payload: response.data.data
+      payload: response.data
     });
 
     return response.data;
   } catch (error) {
-    console.error('Error cancelling token booking:', error);
     dispatch({
       type: CANCEL_TOKEN_BOOKING_FAIL,
       payload: error.response?.data?.message || 'Failed to cancel booking'
@@ -123,41 +129,50 @@ export const cancelTokenBooking = (id, cancellationReason) => async (dispatch) =
   }
 };
 
-export const uploadPaymentProof = (id, formData) => async (dispatch) => {
+export const uploadPaymentProof = (bookingId, formData, onProgress) => async (dispatch) => {
   try {
     dispatch({ type: UPLOAD_PAYMENT_PROOF_REQUEST });
 
-    const { data } = await axiosInstance.post(
-      `/token-bookings/${id}/payment-proof`,
+    // Log the request details for debugging
+    console.log('Uploading payment proof:', {
+      bookingId,
+      formData: Object.fromEntries(formData.entries()),
+      url: `${API_URL}/token-bookings/${bookingId}/payment-proof`
+    });
+
+    const response = await axiosInstance.post(
+      `/token-bookings/${bookingId}/payment-proof`,
       formData,
       {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Accept': 'application/json'
-        }
+          'Content-Type': 'multipart/form-data'
+        },
+        // Add timeout and validate status
+        timeout: 30000,
+        validateStatus: (status) => status >= 200 && status < 300,
+        onUploadProgress: onProgress ? (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        } : undefined
       }
     );
 
-    // First dispatch the upload success
     dispatch({
       type: UPLOAD_PAYMENT_PROOF_SUCCESS,
-      payload: data.data
+      payload: response.data
     });
 
-    // Then fetch the updated booking to ensure we have the latest data
-    const updatedBooking = await axiosInstance.get(`/token-bookings/${id}`);
-    dispatch({
-      type: GET_TOKEN_BOOKING_SUCCESS,
-      payload: updatedBooking.data.data
-    });
-
-    return data;
+    return response.data;
   } catch (error) {
     console.error('Payment proof upload error:', error);
     dispatch({
       type: UPLOAD_PAYMENT_PROOF_FAIL,
-      payload: error.response?.data?.message || 'Error uploading payment proof'
+      payload: error.response?.data?.message || 'Failed to upload payment proof'
     });
     throw error;
   }
+};
+
+export const clearErrors = () => async (dispatch) => {
+  dispatch({ type: CLEAR_ERRORS });
 }; 
