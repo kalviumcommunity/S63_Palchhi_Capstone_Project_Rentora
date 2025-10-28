@@ -134,13 +134,32 @@ export const updateNotificationPreferences = async (userId, preferences) => {
 
 export const loginUser = async (email, password) => {
   try {
+    console.log('Attempting login with:', { email, password: '***' });
+    console.log('API URL:', import.meta.env.VITE_API_URL);
+    
     const response = await axiosInstance.post('/auth/login', { email, password });
-    return {
-      success: true,
-      data: response.data.data
-    };
+    
+    console.log('Login response:', response.data);
+    
+    // Check if the response has the expected structure
+    if (response.data && response.data.success) {
+      return {
+        success: true,
+        data: response.data.data // This contains { user, token }
+      };
+    } else {
+      console.error('Login failed - response structure:', response.data);
+      return {
+        success: false,
+        message: response.data?.message || 'Login failed'
+      };
+    }
   } catch (error) {
     console.error('Error logging in:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    console.error('Error config:', error.config);
+    
     return {
       success: false,
       message: error.response?.data?.message || 'Login failed'

@@ -1,127 +1,76 @@
-import axiosInstance from './axiosConfig';
+import axiosInstance from '../utils/axiosConfig';
 
-export const getListings = async (page = 1, filters = {}) => {
+export const getAllListings = async (page = 1, limit = 10, filters = {}) => {
   try {
-    const response = await axiosInstance.get('/api/listings', {
+    const response = await axiosInstance.get('/listings', {
       params: {
         page,
-        limit: 10,
+        limit,
         ...filters
       }
     });
-
-    // Ensure the response has the expected format
-    if (!response.data) {
-      throw new Error('Invalid response: no data received');
-    }
-
-    // Return the response data with success flag
-    return {
-      success: true,
-      data: response.data.data || [],
-      pagination: response.data.pagination || {
-        page: 1,
-        pages: 1,
-        total: 0
-      }
-    };
+    return response.data;
   } catch (error) {
     console.error('Error fetching listings:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to fetch listings'
-    };
+    throw error;
   }
 };
 
 export const getListingById = async (id) => {
   try {
-    const response = await axiosInstance.get(`/api/listings/${id}`);
-    return {
-      success: true,
-      data: response.data.data
-    };
+    const response = await axiosInstance.get(`/listings/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(`Error fetching listing ${id}:`, error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to fetch listing'
-    };
+    console.error('Error fetching listing:', error);
+    throw error;
   }
 };
 
 export const createListing = async (listingData) => {
   try {
-    const response = await axiosInstance.post('/api/listings', listingData);
-    return {
-      success: true,
-      data: response.data.data
-    };
+    const response = await axiosInstance.post('/listings', listingData);
+    return response.data;
   } catch (error) {
     console.error('Error creating listing:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to create listing'
-    };
+    throw error;
   }
 };
 
 export const updateListing = async (id, listingData) => {
   try {
-    const response = await axiosInstance.put(`/api/listings/${id}`, listingData);
-    return {
-      success: true,
-      data: response.data.data
-    };
+    const response = await axiosInstance.put(`/listings/${id}`, listingData);
+    return response.data;
   } catch (error) {
-    console.error(`Error updating listing ${id}:`, error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to update listing'
-    };
+    console.error('Error updating listing:', error);
+    throw error;
   }
 };
 
 export const deleteListing = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/api/listings/${id}`);
-    return {
-      success: true,
-      data: response.data.data
-    };
+    const response = await axiosInstance.delete(`/listings/${id}`);
+    return response.data;
   } catch (error) {
-    console.error(`Error deleting listing ${id}:`, error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to delete listing'
-    };
+    console.error('Error deleting listing:', error);
+    throw error;
   }
 };
 
-export const searchListings = async (searchQuery, filters = {}, page = 1, limit = 10) => {
+export const searchListings = async (searchParams) => {
   try {
-    const queryParams = new URLSearchParams({
-      search: searchQuery,
-      page,
-      limit,
-      ...filters
-    }).toString();
-
-    const response = await axiosInstance.get(`/api/listings/search?${queryParams}`);
-    return {
-      success: true,
-      data: response.data.data || [],
-      pagination: response.data.pagination || {
-        page: 1,
-        pages: 1,
-        total: 0
+    const queryParams = new URLSearchParams();
+    
+    // Add search parameters
+    Object.keys(searchParams).forEach(key => {
+      if (searchParams[key] !== undefined && searchParams[key] !== null && searchParams[key] !== '') {
+        queryParams.append(key, searchParams[key]);
       }
-    };
+    });
+    
+    const response = await axiosInstance.get(`/listings/search?${queryParams}`);
+    return response.data;
   } catch (error) {
     console.error('Error searching listings:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to search listings'
-    };
+    throw error;
   }
 };

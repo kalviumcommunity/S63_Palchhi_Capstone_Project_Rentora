@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import "../styles/Logout.css";
-import api from '../axiosConfig'; 
+import axiosInstance from '../utils/axiosConfig'; 
 
 const Logout = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const Logout = () => {
     const logoutUser = async () => {
       try {
       
-        await api.post('/auth/logout');
+        await axiosInstance.post('/auth/logout');
       } catch (err) {
         console.error('Logout error:', err);
       } finally {

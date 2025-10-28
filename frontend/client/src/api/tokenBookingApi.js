@@ -1,17 +1,17 @@
-import axiosInstance from './axiosConfig';
+import axiosInstance from '../utils/axiosConfig';
 import { API_URL } from '../config';
 
-export const uploadPaymentProof = async (bookingId, formData) => {
+export const uploadPaymentProof = async (bookingId, formData, onProgress) => {
   try {
     // Log the request details for debugging
     console.log('Uploading payment proof:', {
       bookingId,
       formData: Object.fromEntries(formData.entries()),
-      url: `${API_URL}/api/token-bookings/${bookingId}/payment-proof`
+      url: `${API_URL}/token-bookings/${bookingId}/payment-proof`
     });
 
     const response = await axiosInstance.post(
-      `/api/token-bookings/${bookingId}/payment-proof`,
+      `/token-bookings/${bookingId}/payment-proof`,
       formData,
       {
         headers: {
@@ -20,7 +20,11 @@ export const uploadPaymentProof = async (bookingId, formData) => {
         },
         // Add timeout and validate status
         timeout: 30000,
-        validateStatus: (status) => status >= 200 && status < 300
+        validateStatus: (status) => status >= 200 && status < 300,
+        onUploadProgress: onProgress ? (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        } : undefined
       }
     );
 
@@ -52,9 +56,9 @@ export const uploadPaymentProof = async (bookingId, formData) => {
   }
 };
 
-export const getTokenBookings = async () => {
+export const getAllTokenBookings = async (page = 1, limit = 10) => {
   try {
-    const response = await axiosInstance.get('/api/token-bookings');
+    const response = await axiosInstance.get(`/token-bookings?page=${page}&limit=${limit}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching token bookings:', error);
@@ -64,7 +68,7 @@ export const getTokenBookings = async () => {
 
 export const getTokenBookingById = async (id) => {
   try {
-    const response = await axiosInstance.get(`/api/token-bookings/${id}`);
+    const response = await axiosInstance.get(`/token-bookings/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching token booking ${id}:`, error);
@@ -74,7 +78,7 @@ export const getTokenBookingById = async (id) => {
 
 export const createTokenBooking = async (bookingData) => {
   try {
-    const response = await axiosInstance.post('/api/token-bookings', bookingData);
+    const response = await axiosInstance.post('/token-bookings', bookingData);
     return response.data;
   } catch (error) {
     console.error('Error creating token booking:', error);
@@ -84,7 +88,7 @@ export const createTokenBooking = async (bookingData) => {
 
 export const updateTokenBooking = async (id, bookingData) => {
   try {
-    const response = await axiosInstance.put(`/api/token-bookings/${id}`, bookingData);
+    const response = await axiosInstance.put(`/token-bookings/${id}`, bookingData);
     return response.data;
   } catch (error) {
     console.error(`Error updating token booking ${id}:`, error);
@@ -94,7 +98,7 @@ export const updateTokenBooking = async (id, bookingData) => {
 
 export const deleteTokenBooking = async (id) => {
   try {
-    const response = await axiosInstance.delete(`/api/token-bookings/${id}`);
+    const response = await axiosInstance.delete(`/token-bookings/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error deleting token booking ${id}:`, error);

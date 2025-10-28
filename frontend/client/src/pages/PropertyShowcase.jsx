@@ -10,7 +10,8 @@ import ReviewsList from '../components/reviews/ReviewsList';
 import ChatButton from '../components/chat/ChatButton';
 import '../styles/PropertyShowcase.css';
 import { useAuth } from '../context/AuthContext';
-import { formatImageUrl } from '../utils/imageUtils';
+import { getPropertyImageUrl } from '../utils/imageUtils';
+import { SafeImage } from '../hooks/useImageLoader.jsx';
 
 const PropertyShowcase = () => {
   const { id } = useParams();
@@ -257,15 +258,14 @@ const PropertyShowcase = () => {
               <div className="main-image-container">
                 {property.images && property.images.length > 0 ? (
                   <>
-                    <img 
-                      src={formatImageUrl(property.images[currentImageIndex])}
+                    <SafeImage 
+                      src={getPropertyImageUrl(property.images[currentImageIndex])}
                       alt={`${property.title} - Image ${currentImageIndex + 1}`}
                       className="main-property-image"
+                      fallbackSrc="/uploads/images/default-property.jpg"
                       crossOrigin="anonymous"
                       onError={(e) => {
-                        console.error(`Failed to load image:`, property.images[currentImageIndex]);
-                        e.target.onerror = null;
-                        e.target.src = '/default-property.png';
+                        console.error(`Failed to load main image:`, property.images[currentImageIndex]);
                       }}
                     />
                     <div className="image-navigation">
@@ -295,13 +295,13 @@ const PropertyShowcase = () => {
                       className={`thumbnail ${index === currentImageIndex ? 'active' : ''}`}
                       onClick={() => setCurrentImageIndex(index)}
                     >
-                      <img 
-                        src={formatImageUrl(image)} 
+                      <SafeImage 
+                        src={getPropertyImageUrl(image)} 
                         alt={`Thumbnail ${index + 1}`}
+                        fallbackSrc="/uploads/images/default-property.jpg"
                         crossOrigin="anonymous"
                         onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/default-property.png';
+                          console.error(`Failed to load thumbnail:`, image);
                         }}
                       />
                     </div>
@@ -319,9 +319,9 @@ const PropertyShowcase = () => {
                     <video 
                       controls 
                       className="property-video"
-                      poster={property.images && property.images.length > 0 ? formatImageUrl(property.images[0]) : ''}
+                      poster={property.images && property.images.length > 0 ? getPropertyImageUrl(property.images[0]) : ''}
                     >
-                      <source src={formatImageUrl(video)} type="video/mp4" />
+                      <source src={getPropertyImageUrl(video)} type="video/mp4" />
                       Your browser does not support the video tag.
                     </video>
                     <p className="video-caption">Video Tour {index + 1}</p>
@@ -588,7 +588,7 @@ const PropertyShowcase = () => {
                   <div className="similar-property-image">
                     <img 
                       src={prop.images && prop.images.length > 0 
-                        ? formatImageUrl(prop.images[0])
+                        ? getPropertyImageUrl(prop.images[0])
                         : 'data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22300%22%20height%3D%22200%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20300%20200%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_189e969e945%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A15pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_189e969e945%22%3E%3Crect%20width%3D%22300%22%20height%3D%22200%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22110.5%22%20y%3D%22107.1%22%3ENo%20Image%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E'
                       } 
                       alt={prop.title}

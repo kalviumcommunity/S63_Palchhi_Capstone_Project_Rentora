@@ -75,51 +75,104 @@ export const isGoogleProfileImage = (url) => {
    */
   export const DEFAULT_AVATAR_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=';
 
-export const getImageUrl = (imagePath) => {
-  if (!imagePath) return DEFAULT_IMAGE_PATHS.PROPERTY;
-  
-  // Generate a cache key that includes the path and a flag if it's a profile image
-  const isProfileImage = imagePath.includes('profile-images/');
-  const cacheKey = `${imagePath}_${isProfileImage ? 'profile' : 'property'}`;
-  
-  // Check cache first, but don't use cache if we're having issues
-  if (imageUrlCache.has(cacheKey) && !window.DISABLE_IMAGE_CACHE) {
-    return imageUrlCache.get(cacheKey);
+// Utility functions for handling image URLs
+
+/**
+ * Get the proper image URL, handling both local and Cloudinary URLs
+ * @param {string} imagePath - The image path or URL
+ * @param {string} defaultImage - Default image path
+ * @returns {string} - The complete image URL
+ */
+export const getImageUrl = (imagePath, defaultImage = '/default-property.jpg') => {
+  if (!imagePath) {
+    return defaultImage;
   }
-  
-  let url;
-  
-  // If it's already a full URL
-  if (imagePath.startsWith('http')) {
-    url = imagePath;
-  } else {
-    // Normalize path - ensure it starts with '/'
-    const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-    
-    // Get the API URL from environment or use default
-    const baseUrl = API_URL || 'http://localhost:8000';
-    
-    // Create the full URL with the API base
-    url = `${baseUrl}${normalizedPath}`;
-    
-    // Add a cache-busting parameter
-    const timestamp = Date.now();
-    url = `${url}${url.includes('?') ? '&' : '?'}t=${timestamp}`;
+
+  // If it's already a full URL (Cloudinary or external), return as is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
   }
+
+  // If it's a local path, construct the full URL
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   
-  // Only cache if not disabled
-  if (!window.DISABLE_IMAGE_CACHE) {
-    // Cache the URL
-    imageUrlCache.set(cacheKey, url);
-    
-    // Implement cache size limit
-    if (imageUrlCache.size > CACHE_CONFIG.MAX_CACHE_SIZE) {
-      const firstKey = imageUrlCache.keys().next().value;
-      imageUrlCache.delete(firstKey);
-    }
+  // Remove leading slash if present to avoid double slashes
+  const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+  
+  return `${backendUrl}/${cleanPath}`;
+};
+
+/**
+ * Get profile image URL
+ * @param {string} profileImage - Profile image path or URL
+ * @returns {string} - The complete profile image URL
+ */
+export const getProfileImageUrl = (profileImage) => {
+  return getImageUrl(profileImage, '/uploads/images/default-avatar.jpg');
+};
+
+/**
+ * Get property image URL
+ * @param {string} propertyImage - Property image path or URL
+ * @returns {string} - The complete property image URL
+ */
+export const getPropertyImageUrl = (propertyImage) => {
+  return getImageUrl(propertyImage, '/uploads/images/default-property.jpg');
+};
+
+/**
+ * Get payment proof URL
+ * @param {string} paymentProof - Payment proof path or URL
+ * @returns {string} - The complete payment proof URL
+ */
+export const getPaymentProofUrl = (paymentProof) => {
+  return getImageUrl(paymentProof, '/uploads/images/default-property.jpg');
+};
+
+/**
+ * Check if an image URL is from Cloudinary
+ * @param {string} imageUrl - The image URL to check
+ * @returns {boolean} - True if it's a Cloudinary URL
+ */
+export const isCloudinaryUrl = (imageUrl) => {
+  return imageUrl && imageUrl.includes('cloudinary');
+};
+
+/**
+ * Get optimized image URL for Cloudinary images
+ * @param {string} imageUrl - The original Cloudinary URL
+ * @param {Object} options - Transformation options
+ * @returns {string} - The optimized image URL
+ */
+export const getOptimizedImageUrl = (imageUrl, options = {}) => {
+  if (!isCloudinaryUrl(imageUrl)) {
+    return imageUrl;
   }
+
+  // Default optimization options
+  const defaultOptions = {
+    width: 800,
+    height: 600,
+    crop: 'fill',
+    quality: 'auto:good'
+  };
+
+  const finalOptions = { ...defaultOptions, ...options };
   
-  return url;
+  // For Cloudinary URLs, we can add transformation parameters
+  // This is a simplified approach - in production you might want to use Cloudinary's URL transformation API
+  return imageUrl;
+};
+
+/**
+ * Get thumbnail URL for images
+ * @param {string} imageUrl - The original image URL
+ * @param {number} width - Thumbnail width
+ * @param {number} height - Thumbnail height
+ * @returns {string} - The thumbnail URL
+ */
+export const getThumbnailUrl = (imageUrl, width = 300, height = 200) => {
+  return getOptimizedImageUrl(imageUrl, { width, height, crop: 'fill' });
 };
 
 export const formatImageUrl = (imagePath) => {
@@ -156,55 +209,54 @@ export const handleImageError = (e, originalPath) => {
   }
   
   try {
-    // Try alternative paths
-    const filename = originalPath?.split('/').pop();
-    if (filename) {
-      const isProfileImage = originalPath?.includes('/profile-images/');
-      const baseUrl = API_URL || 'http://localhost:8000';
-      
-      // Try different path combinations
-      const alternativePaths = [
-        // Direct path with timestamp
-        `${baseUrl}${isProfileImage ? '/uploads/profile-images/' : '/uploads/images/'}${filename}?nocache=${Date.now()}`,
-        
-        // Just the filename in the expected location
-        isProfileImage ? `/uploads/profile-images/${filename}` : `/uploads/images/${filename}`,
-        
-        // Default image
-        isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY
-      ];
-      
-      // Try the first alternative path
-      if (alternativePaths.length > 0) {
-        console.log('Trying alternative path:', alternativePaths[0]);
-        e.target.src = alternativePaths[0];
-        
-        // Set up a fallback chain for subsequent alternatives
-        let fallbackIndex = 1;
-        e.target.onerror = (nextE) => {
-          if (fallbackIndex < alternativePaths.length) {
-            console.log(`Trying next fallback (${fallbackIndex + 1}/${alternativePaths.length}):`, alternativePaths[fallbackIndex]);
-            nextE.target.src = alternativePaths[fallbackIndex];
-            fallbackIndex++;
-          } else {
-            // Final fallback
-            console.log('All fallbacks failed, using default image');
-            nextE.target.onerror = null;
-            nextE.target.src = isProfileImage ? DEFAULT_IMAGE_PATHS.AVATAR : DEFAULT_IMAGE_PATHS.PROPERTY;
-          }
-        };
-        return;
-      }
+    const currentSrc = e.target.src;
+    const isProfileImage = originalPath?.includes('/profile-images/');
+    const baseUrl = API_URL || 'http://localhost:8000';
+    
+    // First fallback: try without cache-busting parameter
+    if (currentSrc.includes('?t=') || currentSrc.includes('?nocache=')) {
+      const baseUrlWithoutParams = currentSrc.split('?')[0];
+      console.log('Trying without cache parameter:', baseUrlWithoutParams);
+      e.target.src = baseUrlWithoutParams;
+      return;
     }
+    
+    // Second fallback: try the backend default image
+    const backendDefault = `${baseUrl}/uploads/images/${isProfileImage ? 'default-avatar.jpg' : 'default-property.jpg'}`;
+    if (!currentSrc.includes('default-')) {
+      console.log('Trying backend default:', backendDefault);
+      e.target.src = backendDefault;
+      return;
+    }
+    
+    // Third fallback: try alternative filename patterns
+    const filename = originalPath?.split('/').pop();
+    if (filename && !currentSrc.includes(filename)) {
+      const alternativeUrl = `${baseUrl}${isProfileImage ? '/uploads/profile-images/' : '/uploads/images/'}${filename}`;
+      console.log('Trying alternative filename path:', alternativeUrl);
+      e.target.src = alternativeUrl;
+      return;
+    }
+    
+    // Final fallback: use SVG placeholder
+    console.log('All fallbacks failed, using SVG placeholder');
+    e.target.onerror = null;
+    
+    if (isProfileImage) {
+      e.target.src = DEFAULT_AVATAR_SVG;
+    } else {
+      // Property placeholder SVG
+      e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1IiBzdHJva2U9IiNkZGQiIHN0cm9rZS13aWR0aD0iMiIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIwMCwxNTApIj48Y2lyY2xlIGN4PSIwIiBjeT0iLTIwIiByPSIzMCIgZmlsbD0iI2NjYyIvPjxyZWN0IHg9Ii00MCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIEltYWdlIEF2YWlsYWJsZTwvdGV4dD48L2c+PC9zdmc+';
+    }
+    
   } catch (err) {
     console.error('Error in image fallback handling:', err);
+    // Ultimate fallback
+    e.target.onerror = null;
+    e.target.src = originalPath?.includes('/profile-images/') 
+      ? DEFAULT_AVATAR_SVG
+      : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4=';
   }
-  
-  // If all else fails or if there's an error in our error handler
-  e.target.onerror = null;
-  e.target.src = originalPath?.includes('/profile-images/') 
-    ? DEFAULT_IMAGE_PATHS.AVATAR
-    : DEFAULT_IMAGE_PATHS.PROPERTY;
 };
 
 // Clear image cache

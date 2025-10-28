@@ -68,7 +68,7 @@ const ContactNew = () => {
     setStatus({ loading: true, message: '', success: null });
 
     try {
-      const res = await axios.post('/contact', formData);
+      const res = await axios.post('/api/contact', formData);
       
       setStatus({ 
         loading: false, 

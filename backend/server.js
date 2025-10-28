@@ -33,7 +33,7 @@ const socketOrigins = [
 
 const io = socketIo(server, {
   cors: {
-    origin: socketOrigins,
+    origin: [process.env.CLIENT_URL || "http://localhost:5173", "https://stellar-cobbler-864deb.netlify.app"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -83,10 +83,16 @@ io.on('connection', (socket) => {
 
 // CORS configuration
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+ deployment
+  process.env.CLIENT_URL || 'http://localhost:3000',
+  'http://localhost:5173',
+  'https://*.netlify.app'
+
+  process.env.CLIENT_URL,
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://magical-otter-cbb01e.netlify.app/',
+  'https://stellar-cobbler-864deb.netlify.app',
   'https://rentora.netlify.app',
   'https://*.netlify.app'  // Allow all Netlify subdomains
 ];
@@ -94,20 +100,42 @@ const allowedOrigins = [
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
     
-    // Check if the origin is in the allowed list or is a Netlify domain
+    // Check if the origin is in the allowed list
     const isAllowed = allowedOrigins.some(allowedOrigin => {
+ deployment
       if (allowedOrigin.includes('*')) {
         // Handle wildcard domains
         const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
         return pattern.test(origin);
       }
       return allowedOrigin === origin;
+
+      // Handle wildcard domains
+      if (allowedOrigin.includes('*')) {
+        const pattern = allowedOrigin.replace('*', '.*');
+        const regex = new RegExp(pattern);
+        const matches = regex.test(origin);
+        if (matches) {
+          console.log(`CORS: Origin ${origin} matches pattern ${allowedOrigin}`);
+        }
+        return matches;
+      }
+      const matches = allowedOrigin === origin;
+      if (matches) {
+        console.log(`CORS: Origin ${origin} exactly matches ${allowedOrigin}`);
+      }
+      return matches;
+ main
     });
 
     if (!isAllowed) {
       console.log('CORS blocked request from origin:', origin);
+      console.log('Allowed origins:', allowedOrigins);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
@@ -134,6 +162,9 @@ app.use(cors({
   maxAge: 86400 // 24 hours
 }));
 
+// Handle CORS preflight requests
+app.options('*', cors());
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -142,7 +173,16 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:", "http:", "blob:"],
-      connectSrc: ["'self'", "http://localhost:8000", "http://localhost:3000", "http://localhost:5173", "ws:", "wss:"],
+      connectSrc: [
+        "'self'", 
+        "http://localhost:8000", 
+        "http://localhost:3000", 
+        "https://s63-palchhi-capstone-project-rentora.onrender.com",
+        "https://magical-otter-cbb01e.netlify.app",
+        "https://*.netlify.app",
+        "ws:", 
+        "wss:"
+      ],
       mediaSrc: ["'self'", "data:", "blob:"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
@@ -157,31 +197,26 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
+// Rate limiting - Simplified and more lenient approach
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased limit to 1000 requests per windowMs
+  max: 500, // 500 requests per 15 minutes
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for authenticated users and image requests
-    return req.user !== undefined || req.path.startsWith('/uploads/');
+    // Skip rate limiting for image requests and health checks
+    return req.path.startsWith('/uploads/') || 
+           req.path === '/health';
   },
   keyGenerator: (req) => {
-    // Use user ID as key if authenticated, otherwise use IP
-    return req.user ? req.user._id : req.ip;
+    // Use IP address for rate limiting
+    return req.ip;
   }
 });
 
-// Apply rate limiting to all routes except uploads
-app.use('/api/', (req, res, next) => {
-  if (req.path.startsWith('/uploads/')) {
-    next();
-  } else {
-    limiter(req, res, next);
-  }
-});
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 // Database connection
 connectDB();

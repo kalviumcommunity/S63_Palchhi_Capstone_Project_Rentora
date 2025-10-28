@@ -27,7 +27,20 @@ The real estate landscape is filled with misleading listings, fake accounts, and
 --> Backend: Node.js / Express
 --> Database: MongoDB & MySQL (dual storage for flexibility and performance)
 --> Authentication: JWT / OAuth (Google Login, etc.)
---> Deployment: Vercel / Render / Railway / Netlify (TBD)
+--> Deployment: Netlify (Frontend) + Render (Backend)
+
+## 🚀 Deployment
+
+This project is configured for deployment on:
+- **Frontend**: Netlify
+- **Backend**: Render
+- **Database**: MongoDB Atlas
+
+For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+
+### Quick Deploy Links:
+- Frontend: [Deploy to Netlify](https://app.netlify.com/start)
+- Backend: [Deploy to Render](https://render.com/docs/deploy-create-a-web-service)
 
 🗓 1-Month Plan to Complete Rentora
 
@@ -44,7 +57,7 @@ Day 7: Add Update/Delete routes with ownership checks.
 🧰 Week 2 – Backend Expansion + Testing (Days 8–14)
 
 Day 8: Implement filters: rent/sale, location, price range.
-Day 9: Add “get listings by user” API endpoint.
+Day 9: Add "get listings by user" API endpoint.
 Day 10: Seed the database with sample users and listings.
 Day 11: Write reusable error handling and response utilities.
 Day 12: Test all APIs with Postman or Thunder Client.
@@ -68,7 +81,7 @@ Day 23: Add profile page to view user-specific data.
 Day 24: Add loading states, toasts, and basic error messages.
 Day 25: Make the site responsive and mobile-friendly.
 Day 26: Finalize styling and UI polish across all pages.
-Day 27: Deploy backend (e.g., Railway, Render) and frontend (Vercel/Netlify).
+Day 27: Deploy backend and frontend (Netlify + Render).
 Day 28: Final testing, bug fixes, README update, and project submission.
 
 ##  Feature Upgrade
@@ -92,15 +105,9 @@ Ads for home services (movers, cleaners, etc.)
 
 🌐 Tech Improvements
 Backend testing and cleanup
-Host backend (Render/Railway) + frontend (Vercel/Netlify)
+Host backend and frontend (Netlify + Render)
 Add admin dashboard (basic controls)
 Prepare for mobile app (React Native-ready structure)
-
-## Backend deployment link ##
-https://s63-palchhi-capstone-project-rentora-1.onrender.com
-
-## Frontend deployment link ##
-https://stellar-cobbler-864deb.netlify.app/
 
 # React + Vite
 
