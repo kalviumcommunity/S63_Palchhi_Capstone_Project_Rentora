@@ -156,9 +156,15 @@ app.use(cors({
   maxAge: 86400 // 24 hours
 }));
 
-// Handle CORS preflight requests
-// Use '/*' instead of '*' to avoid a path-to-regexp parsing error in some environments
-app.options('/*', cors());
+// Handle CORS preflight requests safely without relying on path matching
+// Some router/path-to-regexp versions choke on '*' patterns; use method check instead.
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    // Run CORS middleware for preflight requests
+    return cors()(req, res, next);
+  }
+  return next();
+});
 
 // Security middleware
 app.use(helmet({
