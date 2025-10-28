@@ -21,9 +21,19 @@ const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+// Prepare socket origins in a variable to avoid any inline parsing issues
+// Include both CLIENT_URL and FRONTEND_URL env vars (if set). Also include known Netlify fallbacks.
+const socketOrigins = [
+  process.env.CLIENT_URL || "http://localhost:5173",
+  process.env.FRONTEND_URL || null,
+  "https://magical-otter-cbb01e.netlify.app/",
+  "https://rentora.netlify.app",
+  // Keep placeholder for other Netlify subdomains if needed; socket.io accepts exact origins or patterns.
+].filter(Boolean);
+
 const io = socketIo(server, {
   cors: {
-    origin: [process.env.CLIENT_URL || "http://localhost:5173", "https://stellar-cobbler-864deb.netlify.app"],
+    origin: socketOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -76,7 +86,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://stellar-cobbler-864deb.netlify.app',
+  'https://magical-otter-cbb01e.netlify.app/',
   'https://rentora.netlify.app',
   'https://*.netlify.app'  // Allow all Netlify subdomains
 ];
