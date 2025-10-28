@@ -157,7 +157,8 @@ app.use(cors({
 }));
 
 // Handle CORS preflight requests
-app.options('*', cors());
+// Use '/*' instead of '*' to avoid a path-to-regexp parsing error in some environments
+app.options('/*', cors());
 
 // Security middleware
 app.use(helmet({
