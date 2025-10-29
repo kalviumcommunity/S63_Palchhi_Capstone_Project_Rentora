@@ -4,6 +4,7 @@ import { getUserChats } from '../../api/chatApi';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import Loader from '../common/Loader';
+import { API_URL } from '../../config';
 import '../../styles/Chat.css';
 
 const ChatList = () => {
@@ -106,7 +107,7 @@ const ChatList = () => {
       return imagePath;
     } else {
       const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${normalizedPath}`;
+  return `${API_URL}${normalizedPath}`;
     }
   };
 

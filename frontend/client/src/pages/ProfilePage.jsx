@@ -8,7 +8,7 @@ import { FaCamera, FaUser, FaEdit, FaTrash, FaStar } from 'react-icons/fa';
 import Navbar from '../components/common/Navbar';
 import Loader from '../components/common/Loader';
 import '../styles/Profile.css';
-import { DEFAULT_IMAGE_PATHS } from '../config';
+import { DEFAULT_IMAGE_PATHS, API_URL } from '../config';
 import { 
   isGoogleProfileImage, 
   DEFAULT_AVATAR_SVG, 
@@ -101,10 +101,10 @@ const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    const fetchUserListings = async () => {
+        const fetchUserListings = async () => {
       if (user && (user.role === 'seller' || user.role === 'admin')) {
         try {
-          const response = await fetch('http://localhost:8000/api/my-listings', {
+          const response = await fetch(`${API_URL}/api/my-listings`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -524,13 +524,11 @@ const ProfilePage = () => {
                     });
                     
                     // Try with a direct API_URL path first
-                    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                    
                     if (user.profileImage) {
                       // Clean up the path and create a direct URL
                       const cleanPath = user.profileImage
                         .replace(/^\/+|\/+$/g, '')  // Remove leading/trailing slashes
-                        .replace(/\/+/g, '/');      // Normalize slashes
+                        .replace(/\/+/, '/');      // Normalize slashes
                       
                       // Try the cleaned path
                       e.target.src = `${API_URL}/${cleanPath}?t=${Date.now()}`;

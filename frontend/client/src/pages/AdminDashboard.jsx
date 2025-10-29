@@ -6,6 +6,7 @@ import Footer from '../components/common/Footer';
 import Loader from '../components/common/Loader';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../utils/axiosConfig';
+import { API_URL } from '../config';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -609,7 +610,7 @@ const AdminDashboard = () => {
                                 <div className="listing-cell">
                                   <img 
                                     src={listing.images && listing.images.length > 0 
-                                      ? `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${listing.images[0]}` 
+                      ? `${API_URL}${listing.images[0]}` 
                                       : '/default-property.png'
                                     } 
                                     alt={listing.title}

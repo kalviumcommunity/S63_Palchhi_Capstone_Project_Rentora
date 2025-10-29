@@ -5,6 +5,7 @@ import { FaEdit, FaTrash, FaPlus, FaTimes, FaCamera, FaVideo } from 'react-icons
 import Navbar from '../components/common/Navbar';
 import Loader from '../components/common/Loader';
 import axiosInstance from '../utils/axiosConfig';
+import { API_URL } from '../config';
 import { toast } from 'react-toastify';
 import '../styles/MyListings.css';
 
@@ -65,24 +66,24 @@ const MyListings = () => {
 
   const handleEditListing = (listing) => {
     
-    const processedImages = listing.images ? listing.images.map(img => {
+        const processedImages = listing.images ? listing.images.map(img => {
       if (img.startsWith('http')) {
         return img;
       } else {
        
         const normalizedPath = img.startsWith('/') ? img : `/${img}`;
-        return `http://localhost:8000${normalizedPath}`;
+        return `${API_URL}${normalizedPath}`;
       }
     }) : [];
 
  
-    const processedVideos = listing.videos ? listing.videos.map(video => {
+        const processedVideos = listing.videos ? listing.videos.map(video => {
       if (video.startsWith('http')) {
         return video;
       } else {
        
         const normalizedPath = video.startsWith('/') ? video : `/${video}`;
-        return `http://localhost:8000${normalizedPath}`;
+        return `${API_URL}${normalizedPath}`;
       }
     }) : [];
 
@@ -196,7 +197,7 @@ const MyListings = () => {
             finalUrl = path;
           } else {
           
-            const backendUrl = 'http://localhost:8000';
+            const backendUrl = API_URL;
             
             const normalizedPath = path.startsWith('/') ? path : `/${path}`;
             finalUrl = `${backendUrl}${normalizedPath}`;
@@ -261,8 +262,8 @@ const MyListings = () => {
             finalUrl = path;
           } else {
           
-            const backendUrl = 'http://localhost:8000';
-  
+            const backendUrl = API_URL;
+
             const normalizedPath = path.startsWith('/') ? path : `/${path}`;
             finalUrl = `${backendUrl}${normalizedPath}`;
             
@@ -343,7 +344,7 @@ const MyListings = () => {
             finalUrl = path;
           } else {
             
-            const backendUrl = 'http://localhost:8000';
+            const backendUrl = API_URL;
           
             const normalizedPath = path.startsWith('/') ? path : `/${path}`;
             finalUrl = `${backendUrl}${normalizedPath}`;
@@ -483,9 +484,9 @@ const MyListings = () => {
                 <div className="listing-image-container">
                   <img 
                     src={listing.images && listing.images.length > 0 && listing.images[0]
-                      ? (typeof listing.images[0] === 'string' && listing.images[0].startsWith('http') 
+                        ? (typeof listing.images[0] === 'string' && listing.images[0].startsWith('http') 
                         ? listing.images[0] 
-                        : `http://localhost:8000${typeof listing.images[0] === 'string' && listing.images[0].startsWith('/') ? listing.images[0] : `/${listing.images[0]}`}`)
+                        : `${API_URL}${typeof listing.images[0] === 'string' && listing.images[0].startsWith('/') ? listing.images[0] : `/${listing.images[0]}`}`)
                       : '/default-property.png'} 
                     alt={listing.title} 
                     className="listing-image"
@@ -494,7 +495,7 @@ const MyListings = () => {
                       e.target.onerror = null;
                       
                       if (listing.images && listing.images.length > 0 && listing.images[0] && typeof listing.images[0] === 'string' && !listing.images[0].startsWith('http')) {
-                        const backendUrl = 'http://localhost:8000';
+                        const backendUrl = API_URL;
                         const imagePath = listing.images[0];
                         const filename = imagePath.split('/').pop();
                         const alternativeUrl = `${backendUrl}/uploads/images/${filename}`;
@@ -793,8 +794,8 @@ const MyListings = () => {
                                 console.error(`Failed to load image ${index + 1}:`, image || 'undefined');
                                 
                               
-                                if (image && typeof image === 'string' && image.includes('localhost:8000')) {
-                                  const backendUrl = 'http://localhost:8000';
+                                if (image && typeof image === 'string' && image.includes(API_URL)) {
+                                  const backendUrl = API_URL;
                                   const imagePath = image.replace(backendUrl, '');
                                   const alternativeUrl = `${backendUrl}${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
                                   

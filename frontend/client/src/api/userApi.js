@@ -1,4 +1,5 @@
 import axiosInstance from '../utils/axiosConfig';
+import { API_URL } from '../config';
 
 export const getCurrentUser = async () => {
   try {
@@ -134,8 +135,8 @@ export const updateNotificationPreferences = async (userId, preferences) => {
 
 export const loginUser = async (email, password) => {
   try {
-    console.log('Attempting login with:', { email, password: '***' });
-    console.log('API URL:', import.meta.env.VITE_API_URL);
+  console.log('Attempting login with:', { email, password: '***' });
+  console.log('API URL:', API_URL);
     
     const response = await axiosInstance.post('/auth/login', { email, password });
     

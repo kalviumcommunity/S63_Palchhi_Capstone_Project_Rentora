@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from '../utils/axiosConfig';
+import { API_URL } from '../config';
 import { toast } from 'react-toastify';
 import '../styles/AddListing.css';
 import Navbar from '../components/common/Navbar';
@@ -137,12 +138,12 @@ const AddListing = () => {
             
           console.log('Original image URLs from server:', imageUrls);
           
-          const absoluteUrls = imageUrls.map(path => {
+            const absoluteUrls = imageUrls.map(path => {
             if (path.startsWith('http')) {
               return path;
             }
             
-            const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const backendUrl = API_URL;
             const normalizedPath = path.startsWith('/uploads/images/') 
               ? path 
               : `/uploads/images/${path}`;
@@ -176,12 +177,12 @@ const AddListing = () => {
             return;
           }
 
-          const absoluteUrls = videoUrls.map(path => {
+            const absoluteUrls = videoUrls.map(path => {
             if (path.startsWith('http')) {
               return path;
             }
             
-            const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const backendUrl = API_URL;
             const normalizedPath = path.startsWith('/') ? path : `/${path}`;
             return `${backendUrl}${normalizedPath}`;
           });
@@ -233,7 +234,7 @@ const AddListing = () => {
         ...formData,
         images: formData.images.map(img => {
           
-          const backendUrl = 'http://localhost:8000';
+          const backendUrl = API_URL;
           if (img.startsWith(backendUrl)) {
             return img.replace(backendUrl, '');
           }
@@ -241,7 +242,7 @@ const AddListing = () => {
         }),
         videos: formData.videos.map(vid => {
           
-          const backendUrl = 'http://localhost:8000';
+          const backendUrl = API_URL;
           if (vid.startsWith(backendUrl)) {
             return vid.replace(backendUrl, '');
           }
@@ -513,7 +514,7 @@ const AddListing = () => {
                         onError={(e) => {
                           console.error(`Failed to load image ${index + 1}:`, image);
                           
-                          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          const backendUrl = API_URL;
                           const imagePath = image.replace(backendUrl, '');
                           const normalizedPath = imagePath.startsWith('/uploads/images/') 
                             ? imagePath 

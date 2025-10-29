@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaTimes, FaMapMarkerAlt, FaTag } from 'react-icons/fa';
 import { getListings } from '../../api/listingsApi';
+import { API_URL } from '../../config';
 import '../../styles/SearchBar.css';
 
 const SearchBar = () => {
@@ -220,7 +221,7 @@ const SearchBar = () => {
                           <img 
                             src={property.images[0]?.includes('http') 
                               ? property.images[0] 
-                              : `http://localhost:8000${property.images[0]}`} 
+                                : `${API_URL}${property.images[0]}`} 
                             alt={property?.title || 'Property'}
                             onError={(e) => {
                               e.target.onerror = null;

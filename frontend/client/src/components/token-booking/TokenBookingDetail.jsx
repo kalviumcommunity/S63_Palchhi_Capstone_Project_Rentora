@@ -153,7 +153,7 @@ const TokenBookingDetail = () => {
     
     // If it's a payment proof path
     if (path.includes('payment_proofs')) {
-      const baseUrl = API_URL || 'http://localhost:8000';
+      const baseUrl = API_URL;
       // Extract just the filename if it's a full path
       const filename = path.includes('\\') ? path.split('\\').pop() : path.split('/').pop();
       const fullUrl = `${baseUrl}/uploads/payment_proofs/${filename}`;
@@ -167,10 +167,10 @@ const TokenBookingDetail = () => {
       return fullUrl;
     }
     
-    // For property images
-    const baseUrl = API_URL || 'http://localhost:8000';
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    const fullUrl = `${baseUrl}${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
+  // For property images
+  const baseUrl = API_URL;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const fullUrl = `${baseUrl}${cleanPath}`.replace(/([^:]\/)\/+/g, '$1');
     
     return fullUrl;
   };
@@ -355,7 +355,7 @@ const TokenBookingDetail = () => {
                           originalPath: booking.paymentProof
                         });
                         // Try loading from the backend server directly
-                        const backendUrl = `${API_URL || 'http://localhost:8000'}/uploads/payment_proofs/${booking.paymentProof.split(/[\\/]/).pop()}`;
+                        const backendUrl = `${API_URL}/uploads/payment_proofs/${booking.paymentProof.split(/[\\\/]/).pop()}`;
                         if (e.target.src !== backendUrl) {
                           e.target.src = backendUrl;
                         } else {

@@ -5,6 +5,7 @@ import { getChatById, sendMessage, markMessagesAsRead, deleteChat } from '../../
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import Loader from '../common/Loader';
+import { API_URL } from '../../config';
 import { toast } from 'react-hot-toast';
 import '../../styles/Chat.css';
 
@@ -252,7 +253,7 @@ const ChatRoom = ({ chatId }) => {
       return imagePath;
     } else {
       const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${normalizedPath}`;
+  return `${API_URL}${normalizedPath}`;
     }
   };
   

@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Loader from '../common/Loader';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import { API_URL } from '../../config';
 import { FaMapMarkerAlt, FaBed, FaBath, FaRulerCombined } from 'react-icons/fa';
 import '../../styles/WishlistPage.css';
 
@@ -20,7 +21,7 @@ const WishlistPage = () => {
       return imagePath;
     } else {
       const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `http://localhost:8000${normalizedPath}`;
+  return `${API_URL}${normalizedPath}`;
     }
   };
 

@@ -180,3 +180,7 @@ export const clearErrors = () => async (dispatch) => {
 // Backwards-compatible alias: some components import `getUserTokenBookings`
 // Map it to the existing `getTokenBookings` action.
 export const getUserTokenBookings = getTokenBookings;
+
+// Backwards-compatible alias: some components import `getTokenBooking`
+// Map it to the existing `getTokenBookingDetails` action.
+export const getTokenBooking = getTokenBookingDetails;

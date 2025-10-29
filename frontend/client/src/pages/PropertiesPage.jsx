@@ -6,6 +6,7 @@ import Loader from '../components/common/Loader';
 import SearchBar from '../components/common/SearchBar';
 import AdvancedSearch from '../components/properties/AdvancedSearch';
 import { getListings } from '../api/listingsApi';
+import { API_URL } from '../config';
 import { toast } from 'react-toastify';
 import '../styles/theme.css';
 import '../styles/PropertiesPage.css';
@@ -251,7 +252,7 @@ const PropertiesPage = () => {
     } else {
       
       const normalizedPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-      return `http://localhost:8000${normalizedPath}`;
+  return `${API_URL}${normalizedPath}`;
     }
   };
 

@@ -94,7 +94,7 @@ export const getImageUrl = (imagePath, defaultImage = '/default-property.jpg') =
   }
 
   // If it's a local path, construct the full URL
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const backendUrl = API_URL;
   
   // Remove leading slash if present to avoid double slashes
   const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
@@ -210,8 +210,8 @@ export const handleImageError = (e, originalPath) => {
   
   try {
     const currentSrc = e.target.src;
-    const isProfileImage = originalPath?.includes('/profile-images/');
-    const baseUrl = API_URL || 'http://localhost:8000';
+  const isProfileImage = originalPath?.includes('/profile-images/');
+  const baseUrl = API_URL;
     
     // First fallback: try without cache-busting parameter
     if (currentSrc.includes('?t=') || currentSrc.includes('?nocache=')) {
