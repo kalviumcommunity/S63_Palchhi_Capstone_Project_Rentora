@@ -80,81 +80,45 @@ io.on('connection', (socket) => {
   });
 });
 
-// CORS configuration
+// CORS configuration - simplified and robust
 const allowedOrigins = [
-  process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
   'http://localhost:3000',
   'http://localhost:5173',
   'https://magical-otter-cbb01e.netlify.app',
   'https://stellar-cobbler-864deb.netlify.app',
-  'https://rentora.netlify.app',
-  'https://*.netlify.app'  // Allow all Netlify subdomains
-];
+  'https://rentora.netlify.app'
+].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) {
-      console.log('CORS: Allowing request with no origin');
+    // Allow non-browser requests (like curl, Postman) which have no origin
+    if (!origin) return callback(null, true);
+
+    // Allow if origin exactly matches one of the allowed origins
+    if (allowedOrigins.includes(origin)) {
+      console.log('CORS: allowed origin', origin);
       return callback(null, true);
     }
-    
-    // Check if the origin is in the allowed list
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
- deployment
-      if (allowedOrigin.includes('*')) {
-        // Handle wildcard domains
-        const pattern = new RegExp('^' + allowedOrigin.replace('*', '.*') + '$');
-        return pattern.test(origin);
-      }
-      return allowedOrigin === origin;
 
-      // Handle wildcard domains
-      if (allowedOrigin.includes('*')) {
-        const pattern = allowedOrigin.replace('*', '.*');
-        const regex = new RegExp(pattern);
-        const matches = regex.test(origin);
-        if (matches) {
-          console.log(`CORS: Origin ${origin} matches pattern ${allowedOrigin}`);
-        }
-        return matches;
-      }
-      const matches = allowedOrigin === origin;
-      if (matches) {
-        console.log(`CORS: Origin ${origin} exactly matches ${allowedOrigin}`);
-      }
-      return matches;
- main
-    });
-
-    if (!isAllowed) {
-      console.log('CORS blocked request from origin:', origin);
-      console.log('Allowed origins:', allowedOrigins);
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    // Allow Netlify subdomains if needed (match *.netlify.app)
+    if (/^https:\/\/([a-z0-9-]+)\.netlify\.app$/i.test(origin)) {
+      console.log('CORS: allowed Netlify origin', origin);
+      return callback(null, true);
     }
-    
-    console.log('CORS allowed request from origin:', origin);
-    return callback(null, true);
+
+    console.warn('CORS: blocked origin', origin);
+    return callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Accept',
-    'Cache-Control',
-    'Pragma',
-    'If-Modified-Since',
-    'If-None-Match',
-    'Access-Control-Allow-Methods',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Origin'
-  ],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range', 'ETag', 'Last-Modified'],
-  maxAge: 86400 // 24 hours
-}));
+  maxAge: 86400
+};
+
+app.use(cors(corsOptions));
 
 // Handle CORS preflight requests safely without relying on path matching
 // Some router/path-to-regexp versions choke on '*' patterns; use method check instead.
