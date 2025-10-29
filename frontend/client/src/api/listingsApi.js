@@ -74,3 +74,7 @@ export const searchListings = async (searchParams) => {
     throw error;
   }
 };
+
+// Backwards-compatible alias: some components import `getListings`.
+// Map it to `searchListings` which accepts filters and returns matching listings.
+export const getListings = searchListings;

@@ -65,3 +65,7 @@ export const deleteNotification = async (notificationId) => {
     throw error;
   }
 };
+
+// Backwards-compatible alias: some components import `getUserNotifications`
+// which maps to the paginated `getNotifications` function.
+export const getUserNotifications = getNotifications;

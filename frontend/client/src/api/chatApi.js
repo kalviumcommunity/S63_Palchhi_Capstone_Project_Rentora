@@ -71,3 +71,6 @@ export const deleteChat = async (chatId) => {
     throw error;
   }
 };
+
+// Backwards-compatible alias: some components call `markMessagesAsRead`
+export const markMessagesAsRead = markChatAsRead;

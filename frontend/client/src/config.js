@@ -1,5 +1,5 @@
-export const API_URL = 
-  `${import.meta.env.VITE_API_URL}`;
+// Use VITE_API_URL if provided at build time, otherwise fall back to the deployed Render backend
+export const API_URL = import.meta.env.VITE_API_URL || 'https://s63-palchhi-capstone-project-rentora.onrender.com';
 
 // Default image paths
 export const DEFAULT_IMAGE_PATHS = {
