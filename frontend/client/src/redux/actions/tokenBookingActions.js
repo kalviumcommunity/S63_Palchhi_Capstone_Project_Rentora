@@ -176,3 +176,7 @@ export const uploadPaymentProof = (bookingId, formData, onProgress) => async (di
 export const clearErrors = () => async (dispatch) => {
   dispatch({ type: CLEAR_ERRORS });
 }; 
+
+// Backwards-compatible alias: some components import `getUserTokenBookings`
+// Map it to the existing `getTokenBookings` action.
+export const getUserTokenBookings = getTokenBookings;
