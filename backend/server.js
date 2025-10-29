@@ -124,8 +124,8 @@ app.use(cors(corsOptions));
 // Some router/path-to-regexp versions choke on '*' patterns; use method check instead.
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    // Run CORS middleware for preflight requests
-    return cors()(req, res, next);
+    // Run CORS middleware for preflight requests using the same options
+    return cors(corsOptions)(req, res, next);
   }
   return next();
 });
