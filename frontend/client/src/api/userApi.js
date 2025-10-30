@@ -156,14 +156,18 @@ export const loginUser = async (email, password) => {
       };
     }
   } catch (error) {
-    console.error('Error logging in:', error);
+    // Provide richer error output so we can distinguish network/timeouts vs server errors
+    console.error('Error logging in:', error.message, 'code:', error.code);
     console.error('Error response:', error.response?.data);
     console.error('Error status:', error.response?.status);
     console.error('Error config:', error.config);
-    
+
+    // If there's no response, include the message (network/CORS/timeout)
+    const fallbackMessage = error.response?.data?.message || error.message || 'Login failed';
+
     return {
       success: false,
-      message: error.response?.data?.message || 'Login failed'
+      message: fallbackMessage
     };
   }
 };

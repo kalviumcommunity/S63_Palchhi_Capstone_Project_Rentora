@@ -5,7 +5,8 @@ import { API_URL } from '../config';
 // Use API_URL from config (which has a production fallback) to ensure correct base URL
 const axiosInstance = axios.create({
   baseURL: `${API_URL}/api`,
-  timeout: 10000,
+  // Increase default timeout to 30s to reduce false timeouts from slow networks or cold functions
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -64,7 +65,7 @@ axiosInstance.interceptors.response.use(
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     }
 
-    // Log successful response for debugging (only in development)
+      // Log successful response for debugging (only in development)
     if (process.env.NODE_ENV === 'development') {
       console.log('API Response:', {
         status: response.status,
@@ -75,15 +76,19 @@ axiosInstance.interceptors.response.use(
     
     return response;
   },
-  async (error) => {
-    // Log error response for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.error('API Error:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: error.config
-      });
-    }
+    async (error) => {
+      // Log error response for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          data: error.response?.data,
+          config: error.config,
+          // If the request was made but no response was received (network or CORS), error.request will be present
+          request: error.request
+        });
+      }
 
     const originalRequest = error.config;
     
