@@ -91,6 +91,8 @@ const allowedOrigins = [
   'https://rentora.netlify.app'
 ].filter(Boolean);
 
+
+
 const corsOptions = {
   origin: function(origin, callback) {
     // Allow non-browser requests (like curl, Postman) which have no origin
