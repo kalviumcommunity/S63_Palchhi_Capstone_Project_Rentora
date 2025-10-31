@@ -36,6 +36,9 @@ const TokenBookingList = () => {
 
   console.log('TokenBookingList state:', { bookings, loading, error });
 
+  // Defensive: normalize bookings to an array in case an action dispatched a wrapper object
+  const bookingList = Array.isArray(bookings) ? bookings : (bookings && bookings.data ? bookings.data : []);
+
   const getStatusColor = (status) => {
     const colors = {
       pending: 'yellow',
@@ -66,7 +69,7 @@ const TokenBookingList = () => {
     );
   }
 
-  if (!bookings || bookings.length === 0) {
+  if (!bookingList || bookingList.length === 0) {
     return (
       <Box flex="1" p={8} display="flex" alignItems="center" justifyContent="center" minH="calc(100vh - 200px)">
         <Box textAlign="center" py={10}>
@@ -121,7 +124,7 @@ const TokenBookingList = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {bookings.map((booking) => (
+              {bookingList.map((booking) => (
                 <Tr key={booking._id}>
                   <Td>
                     <Flex align="center">
