@@ -524,9 +524,19 @@ exports.deleteListing = async (req, res) => {
     }
 
     await Listing.findByIdAndDelete(listingId);
-    
-  
-    listingCache.delete(`listing_${listingId}`);
+
+    // Remove from cache - support both .del and .delete depending on cache implementation
+    try {
+      if (listingCache && typeof listingCache.del === 'function') {
+        listingCache.del(`listing_${listingId}`);
+      } else if (listingCache && typeof listingCache.delete === 'function') {
+        listingCache.delete(`listing_${listingId}`);
+      } else {
+        console.debug('listingCache has no del/delete method; skipping cache removal');
+      }
+    } catch (cacheErr) {
+      console.error('Error removing listing from cache:', cacheErr);
+    }
 
  
     try {
