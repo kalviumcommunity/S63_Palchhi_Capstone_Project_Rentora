@@ -2,12 +2,22 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+// Configure Cloudinary (if credentials are provided)
+const isCloudinaryConfigured = !!(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+
+if (isCloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+} else {
+  console.warn('Cloudinary not configured. Falling back to local storage for uploads.');
+}
 
 // Create storage configurations for different types of uploads
 const createCloudinaryStorage = (folder, allowedFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp']) => {
@@ -84,9 +94,60 @@ const uploadPaymentProof = multer({
 });
 
 // Utility functions for Cloudinary operations
+const fs = require('fs');
+const path = require('path');
+const projectRoot = path.resolve(__dirname, '..');
+
 const uploadToCloudinary = async (file, folder = 'rentora/misc') => {
+  if (!isCloudinaryConfigured) {
+    // Fallback: write buffer to disk and return an object mimicking Cloudinary's response
+    try {
+      const ext = file.originalname ? path.extname(file.originalname) : '.bin';
+      const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const subfolder = folder.includes('video') ? 'videos' : 'images';
+      const uploadDir = path.join(projectRoot, 'public', 'uploads', subfolder);
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      const outPath = path.join(uploadDir, filename);
+
+      // file.buffer is expected when using memoryStorage
+      if (file.buffer) {
+        fs.writeFileSync(outPath, file.buffer);
+      } else if (file.path) {
+        // If a file.path exists (disk storage), copy it
+        fs.copyFileSync(file.path, outPath);
+      } else {
+        throw new Error('No file buffer or path available for local fallback');
+      }
+
+      return {
+        secure_url: `/uploads/${subfolder}/${filename}`,
+        public_id: `${folder}/${filename}`
+      };
+    } catch (err) {
+      console.error('Local fallback upload error:', err);
+      throw new Error('Failed to save file to local storage');
+    }
+  }
+
+  // If Cloudinary is configured, use it
   try {
-    const result = await cloudinary.uploader.upload(file.path || file.buffer, {
+    // If file.buffer is present, convert to a data URI string for cloudinary
+    if (file.buffer) {
+      const dataUriPrefix = `data:${file.mimetype || 'application/octet-stream'};base64,`;
+      const base64 = file.buffer.toString('base64');
+      const dataUri = dataUriPrefix + base64;
+      const result = await cloudinary.uploader.upload(dataUri, {
+        folder: folder,
+        resource_type: 'auto',
+        transformation: [
+          { width: 1000, height: 1000, crop: 'limit' },
+          { quality: 'auto:good' }
+        ]
+      });
+      return result;
+    }
+
+    const result = await cloudinary.uploader.upload(file.path, {
       folder: folder,
       resource_type: 'auto',
       transformation: [
