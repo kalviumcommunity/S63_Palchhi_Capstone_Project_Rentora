@@ -38,6 +38,37 @@ const MyListings = () => {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
 
+  // Helper to safely extract the first image URL from a listing
+  const getFirstImageUrl = (listing) => {
+    try {
+      if (!listing) return '/default-property.png';
+      const imgs = listing.images;
+      if (!imgs || !Array.isArray(imgs) || imgs.length === 0) return '/default-property.png';
+
+      const first = imgs[0];
+
+      // If it's already a string, normalize it
+      if (typeof first === 'string') {
+        if (first.startsWith('http')) return first;
+        const normalizedPath = first.startsWith('/') ? first : `/${first}`;
+        return `${API_URL}${normalizedPath}`;
+      }
+
+      // If it's an object (e.g., { secure_url }), try known keys
+      if (typeof first === 'object' && first !== null) {
+        if (first.secure_url) return first.secure_url;
+        if (first.url) return first.url;
+        // fallback to string coercion
+        const str = String(first);
+        if (str && str !== '[object Object]') return str;
+      }
+
+      return '/default-property.png';
+    } catch (err) {
+      console.error('Error resolving listing image URL', err, listing && listing.images);
+      return '/default-property.png';
+    }
+  };
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -482,28 +513,35 @@ const MyListings = () => {
                 onClick={() => navigate(`/properties/${listing._id}`)}
               >
                 <div className="listing-image-container">
-                  <img 
-                    src={listing.images && listing.images.length > 0 && listing.images[0]
-                        ? (typeof listing.images[0] === 'string' && listing.images[0].startsWith('http') 
-                        ? listing.images[0] 
-                        : `${API_URL}${typeof listing.images[0] === 'string' && listing.images[0].startsWith('/') ? listing.images[0] : `/${listing.images[0]}`}`)
-                      : '/default-property.png'} 
-                    alt={listing.title} 
+                  <img
+                    src={getFirstImageUrl(listing)}
+                    alt={listing.title}
                     className="listing-image"
                     onError={(e) => {
-                      console.error(`Failed to load image for listing ${listing._id}:`, listing.images && listing.images[0] ? listing.images[0] : 'undefined');
+                      const imgs = listing && listing.images;
+                      console.error(`Failed to load image for listing ${listing._id}:`, imgs ? imgs[0] : undefined);
                       e.target.onerror = null;
-                      
-                      if (listing.images && listing.images.length > 0 && listing.images[0] && typeof listing.images[0] === 'string' && !listing.images[0].startsWith('http')) {
-                        const backendUrl = API_URL;
-                        const imagePath = listing.images[0];
-                        const filename = imagePath.split('/').pop();
-                        const alternativeUrl = `${backendUrl}/uploads/images/${filename}`;
-                        console.log(`Trying alternative URL: ${alternativeUrl}`);
-                        e.target.src = alternativeUrl;
-                      } else {
-                        e.target.src = '/default-property.png';
+
+                      // Try a filename-based fallback if possible
+                      if (imgs && Array.isArray(imgs) && imgs[0]) {
+                        const first = imgs[0];
+                        let filename;
+                        if (typeof first === 'string') {
+                          const imagePath = first;
+                          filename = imagePath.split('/').pop();
+                        } else if (typeof first === 'object' && first !== null) {
+                          filename = (first.secure_url || first.url || '').split('/').pop();
+                        }
+
+                        if (filename) {
+                          const alt = `${API_URL}/uploads/images/${filename}`;
+                          console.log(`Trying alternative URL: ${alt}`);
+                          e.target.src = alt;
+                          return;
+                        }
                       }
+
+                      e.target.src = '/default-property.png';
                     }}
                   />
                   <div className="listing-price">₹{listing.price.toLocaleString()}</div>
