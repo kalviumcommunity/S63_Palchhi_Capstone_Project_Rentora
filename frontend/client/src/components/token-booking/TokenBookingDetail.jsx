@@ -149,7 +149,21 @@ const TokenBookingDetail = () => {
     if (!path) return '/default-property.png';
     
     // If it's already a full URL, return it
-    if (path.startsWith('http')) return path;
+    if (path.startsWith('http')) {
+      // If the URL was stored as a localhost URL during development, rewrite it to use the deployed API host
+      try {
+        const url = new URL(path);
+        if (url.hostname.includes('localhost')) {
+          // keep the pathname and use API_URL as the origin
+          const apiOrigin = new URL(API_URL).origin || API_URL;
+          return `${apiOrigin}${url.pathname}${url.search}`;
+        }
+      } catch (err) {
+        // If URL parsing fails, fall back to returning the original path
+        return path;
+      }
+      return path;
+    }
     
     // If it's a payment proof path
     if (path.includes('payment_proofs')) {
@@ -220,19 +234,24 @@ const TokenBookingDetail = () => {
             Property Information
           </Heading>
           <Flex>
-            <Image
-              src={getImageUrl(booking.property?.images?.[0])}
-              alt={booking.property?.title || 'Property Image'}
-              boxSize="200px"
-              objectFit="cover"
-              borderRadius="md"
-              mr={6}
-              onError={(e) => {
-                console.error('Property image load error:', e);
-                e.target.onerror = null;
-                e.target.src = '/default-property.png';
-              }}
-            />
+                    <Image
+                      src={getImageUrl(booking.property?.images?.[0])}
+                      alt={booking.property?.title || 'Property Image'}
+                      boxSize="200px"
+                      objectFit="cover"
+                      borderRadius="md"
+                      mr={6}
+                      onError={(e) => {
+                        // Use currentTarget which is the actual DOM element and avoid SyntheticEvent reuse issues
+                        const img = e.currentTarget || e.target;
+                        console.error('Property image load error:', {
+                          attemptedSrc: img?.src,
+                          bookingImage: booking.property?.images?.[0]
+                        });
+                        try { img.onerror = null; } catch (er) {}
+                        img.src = '/default-property.png';
+                      }}
+                    />
             <VStack align="start" spacing={2}>
               <Text fontSize="xl" fontWeight="bold">
                 {booking.property?.title || 'Property Title Not Available'}
@@ -349,18 +368,19 @@ const TokenBookingDetail = () => {
                       cursor="pointer"
                       onClick={() => window.open(getImageUrl(booking.paymentProof), '_blank')}
                       onError={(e) => {
+                        const img = e.currentTarget || e.target;
                         console.error('Payment proof image load error:', {
-                          error: e,
-                          attemptedUrl: e.target.src,
+                          attemptedSrc: img?.src,
                           originalPath: booking.paymentProof
                         });
-                        // Try loading from the backend server directly
-                        const backendUrl = `${API_URL}/uploads/payment_proofs/${booking.paymentProof.split(/[\\\/]/).pop()}`;
-                        if (e.target.src !== backendUrl) {
-                          e.target.src = backendUrl;
+                        // Try loading from the backend server directly using filename
+                        const filename = booking.paymentProof?.split(/[\\\/]/).pop();
+                        const backendUrl = filename ? `${API_URL}/uploads/payment_proofs/${filename}` : null;
+                        try { img.onerror = null; } catch (er) {}
+                        if (backendUrl && img.src !== backendUrl) {
+                          img.src = backendUrl;
                         } else {
-                          e.target.onerror = null;
-                          e.target.src = '/default-property.png';
+                          img.src = '/default-property.png';
                         }
                       }}
                     />
