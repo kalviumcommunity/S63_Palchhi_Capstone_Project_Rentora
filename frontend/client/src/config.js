@@ -1,5 +1,9 @@
 // Use VITE_API_URL if provided at build time, otherwise fall back to the deployed Render backend
 export const API_URL = import.meta.env.VITE_API_URL || 'https://s63-palchhi-capstone-project-rentora.onrender.com';
+// Whether to send credentials (cookies) with requests. Set VITE_API_WITH_CREDENTIALS to 'false' to disable.
+export const API_WITH_CREDENTIALS = typeof import.meta.env.VITE_API_WITH_CREDENTIALS !== 'undefined'
+  ? String(import.meta.env.VITE_API_WITH_CREDENTIALS)
+  : 'true';
 
 // Default image paths
 export const DEFAULT_IMAGE_PATHS = {

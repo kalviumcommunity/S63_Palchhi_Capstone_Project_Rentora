@@ -1,16 +1,17 @@
 import axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL, API_WITH_CREDENTIALS } from '../config';
 
 // Create axios instance with default config
 // Use API_URL from config (which has a production fallback) to ensure correct base URL
 const axiosInstance = axios.create({
   baseURL: `${API_URL}/api`,
-  // Increase default timeout to 30s to reduce false timeouts from slow networks or cold functions
-  timeout: 30000,
+  // Increase default timeout to 60s to reduce false timeouts from slow networks or cold functions
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true
+  // Allow toggling credentials via Vite env VITE_API_WITH_CREDENTIALS (default 'true')
+  withCredentials: API_WITH_CREDENTIALS === 'true'
 });
 
 // Initialize token from localStorage if it exists

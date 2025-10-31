@@ -58,16 +58,15 @@ export const deleteListing = async (id) => {
 
 export const searchListings = async (searchParams) => {
   try {
-    const queryParams = new URLSearchParams();
-    
-    // Add search parameters
-    Object.keys(searchParams).forEach(key => {
-      if (searchParams[key] !== undefined && searchParams[key] !== null && searchParams[key] !== '') {
-        queryParams.append(key, searchParams[key]);
-      }
+    // The backend exposes searching via GET /listings with query params.
+    // Use axios params to let axios build the query string correctly.
+    const params = {};
+    Object.keys(searchParams || {}).forEach(key => {
+      const val = searchParams[key];
+      if (val !== undefined && val !== null && val !== '') params[key] = val;
     });
-    
-    const response = await axiosInstance.get(`/listings/search?${queryParams}`);
+
+    const response = await axiosInstance.get('/listings', { params });
     return response.data;
   } catch (error) {
     console.error('Error searching listings:', error);
