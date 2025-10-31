@@ -107,7 +107,7 @@ const AddListing = () => {
     try {
       console.log('Uploading files:', e.target.name, files.length);
       
-      const response = await axios.post('/api/listings/upload-media', uploadData, {
+  const response = await axios.post('/listings/upload-media', uploadData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -250,7 +250,7 @@ const AddListing = () => {
         })
       };
       
-      await axios.post('/api/listings', submissionData);
+  await axios.post('/listings', submissionData);
       toast.success('Listing created successfully');
       navigate('/my-listings');
     } catch (error) {
