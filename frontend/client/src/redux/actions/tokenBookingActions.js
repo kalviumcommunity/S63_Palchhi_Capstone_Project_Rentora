@@ -28,12 +28,13 @@ export const createTokenBooking = (bookingData) => async (dispatch) => {
 
     const { data } = await axiosInstance.post('/token-bookings', bookingData);
 
+    // Backend returns { success: true, data: <booking> }
     dispatch({
       type: CREATE_TOKEN_BOOKING_SUCCESS,
-      payload: data
+      payload: data.data
     });
 
-    return data;
+    return data.data;
   } catch (error) {
     dispatch({
       type: CREATE_TOKEN_BOOKING_FAIL,
@@ -49,12 +50,13 @@ export const getTokenBookings = () => async (dispatch) => {
 
     const { data } = await axiosInstance.get('/token-bookings/my-bookings');
 
+    // Backend returns { success: true, data: [ ...bookings ] }
     dispatch({
       type: GET_TOKEN_BOOKINGS_SUCCESS,
-      payload: data
+      payload: data.data
     });
 
-    return data;
+    return data.data;
   } catch (error) {
     dispatch({
       type: GET_TOKEN_BOOKINGS_FAIL,
@@ -70,12 +72,13 @@ export const getTokenBookingDetails = (id) => async (dispatch) => {
 
     const { data } = await axiosInstance.get(`/token-bookings/${id}`);
 
+    // Backend returns { success: true, data: <booking> }
     dispatch({
       type: GET_TOKEN_BOOKING_DETAILS_SUCCESS,
-      payload: data
+      payload: data.data
     });
 
-    return data;
+    return data.data;
   } catch (error) {
     dispatch({
       type: GET_TOKEN_BOOKING_DETAILS_FAIL,
@@ -91,12 +94,13 @@ export const updateTokenBookingStatus = (id, status) => async (dispatch) => {
 
     const { data } = await axiosInstance.patch(`/token-bookings/${id}/status`, { status });
 
+    // Backend returns { success: true, data: <updatedBooking> }
     dispatch({
       type: UPDATE_TOKEN_BOOKING_STATUS_SUCCESS,
-      payload: data
+      payload: data.data
     });
 
-    return data;
+    return data.data;
   } catch (error) {
     dispatch({
       type: UPDATE_TOKEN_BOOKING_STATUS_FAIL,
@@ -114,12 +118,13 @@ export const cancelTokenBooking = (id, reason) => async (dispatch) => {
       reason
     });
 
+    // Backend returns { success: true, data: <updatedBooking> }
     dispatch({
       type: CANCEL_TOKEN_BOOKING_SUCCESS,
-      payload: response.data
+      payload: response.data.data
     });
 
-    return response.data;
+    return response.data.data;
   } catch (error) {
     dispatch({
       type: CANCEL_TOKEN_BOOKING_FAIL,
@@ -157,12 +162,15 @@ export const uploadPaymentProof = (bookingId, formData, onProgress) => async (di
       }
     );
 
+    // Backend returns { success: true, data: { bookingId, paymentProof, paymentStatus } }
+    const payload = response.data.data || response.data;
+
     dispatch({
       type: UPLOAD_PAYMENT_PROOF_SUCCESS,
-      payload: response.data
+      payload
     });
 
-    return response.data;
+    return payload;
   } catch (error) {
     console.error('Payment proof upload error:', error);
     dispatch({
