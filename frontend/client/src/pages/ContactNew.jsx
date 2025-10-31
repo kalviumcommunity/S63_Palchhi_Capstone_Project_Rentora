@@ -68,7 +68,9 @@ const ContactNew = () => {
     setStatus({ loading: true, message: '', success: null });
 
     try {
-      const res = await axios.post('/api/contact', formData);
+  // axiosInstance baseURL is already set to `${API_URL}/api`, so call the route relative to that base
+  // Avoid duplicating `/api` which causes requests to hit `/api/api/contact` and return 404
+  const res = await axios.post('/contact', formData);
       
       setStatus({ 
         loading: false, 
