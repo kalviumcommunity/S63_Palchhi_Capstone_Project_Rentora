@@ -15,7 +15,8 @@ const AllContacts = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/contact');
+      const res = await axios.get('/contact');
+      // axiosInstance returns { success:true, data: [...] }
       if (res.data && res.data.data) {
         setContacts(res.data.data);
       } else {
@@ -34,7 +35,7 @@ const AllContacts = () => {
   const handleMarkDone = async (id) => {
     try {
       setMarking(id);
-      const res = await axios.put(`/api/contact/${id}/done`);
+      const res = await axios.put(`/contact/${id}/done`);
       if (res.data && res.data.success) {
         setContacts((prev) =>
           prev.map((c) => (c._id === id ? { ...c, isDone: true } : c))
